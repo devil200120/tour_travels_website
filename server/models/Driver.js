@@ -17,6 +17,12 @@ const driverSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6,
+    select: false // Don't include password in queries by default for security
+  },
   alternatePhone: {
     type: String
   },
@@ -109,7 +115,36 @@ const driverSchema = new mongoose.Schema({
   specializations: [{
     type: String,
     enum: ['City Tours', 'Outstation', 'Airport Transfer', 'Local Trips']
-  }]
+  }],
+  workingHours: {
+    start: String, // e.g., "09:00"
+    end: String,   // e.g., "22:00"
+    daysOff: [String] // e.g., ["Sunday"]
+  },
+  availabilityReason: String,
+  availabilityUpdatedAt: Date,
+  pendingEarnings: {
+    type: Number,
+    default: 0
+  },
+  lastSettlementDate: Date,
+  documentsUploadedAt: Date,
+  lastActiveAt: Date,
+  deviceInfo: {
+    deviceId: String,
+    deviceType: String, // "android", "ios"
+    appVersion: String,
+    lastSeen: Date
+  },
+  preferences: {
+    maxRadius: { type: Number, default: 10 }, // km
+    autoAcceptBookings: { type: Boolean, default: false },
+    notifications: {
+      bookingRequests: { type: Boolean, default: true },
+      paymentUpdates: { type: Boolean, default: true },
+      promotions: { type: Boolean, default: true }
+    }
+  }
 }, {
   timestamps: true
 });

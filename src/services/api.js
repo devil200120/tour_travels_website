@@ -39,17 +39,17 @@ api.interceptors.response.use(
 // Auth API
 export const authService = {
   login: async (email, password) => {
-    const response = await api.post('/auth/login', { email, password });
+    const response = await api.post('/admin/auth/login', { email, password });
     return response.data;
   },
   
   getProfile: async () => {
-    const response = await api.get('/auth/profile');
+    const response = await api.get('/admin/auth/profile');
     return response.data;
   },
   
   logout: async () => {
-    const response = await api.post('/auth/logout');
+    const response = await api.post('/admin/auth/logout');
     return response.data;
   }
 };
@@ -57,37 +57,37 @@ export const authService = {
 // Bookings API
 export const bookingsService = {
   getAll: async (params = {}) => {
-    const response = await api.get('/bookings', { params });
+    const response = await api.get('/admin/bookings', { params });
     return response.data;
   },
   
   getById: async (id) => {
-    const response = await api.get(`/bookings/${id}`);
+    const response = await api.get(`/admin/bookings/${id}`);
     return response.data;
   },
   
   create: async (data) => {
-    const response = await api.post('/bookings', data);
+    const response = await api.post('/admin/bookings', data);
     return response.data;
   },
   
   update: async (id, data) => {
-    const response = await api.put(`/bookings/${id}`, data);
+    const response = await api.put(`/admin/bookings/${id}`, data);
     return response.data;
   },
   
   assign: async (id, driverId, vehicleId) => {
-    const response = await api.post(`/bookings/${id}/assign`, { driverId, vehicleId });
+    const response = await api.post(`/admin/bookings/${id}/assign`, { driverId, vehicleId });
     return response.data;
   },
   
   cancel: async (id, reason, refundAmount) => {
-    const response = await api.post(`/bookings/${id}/cancel`, { reason, refundAmount });
+    const response = await api.post(`/admin/bookings/${id}/cancel`, { reason, refundAmount });
     return response.data;
   },
   
   getStats: async () => {
-    const response = await api.get('/bookings/stats/dashboard');
+    const response = await api.get('/admin/bookings/stats/dashboard');
     return response.data;
   }
 };
@@ -95,32 +95,32 @@ export const bookingsService = {
 // Drivers API
 export const driversService = {
   getAll: async (params = {}) => {
-    const response = await api.get('/drivers', { params });
+    const response = await api.get('/admin/drivers', { params });
     return response.data;
   },
   
   getById: async (id) => {
-    const response = await api.get(`/drivers/${id}`);
+    const response = await api.get(`/admin/drivers/${id}`);
     return response.data;
   },
   
   create: async (data) => {
-    const response = await api.post('/drivers', data);
+    const response = await api.post('/admin/drivers', data);
     return response.data;
   },
   
   update: async (id, data) => {
-    const response = await api.put(`/drivers/${id}`, data);
+    const response = await api.put(`/admin/drivers/${id}`, data);
     return response.data;
   },
   
   updateKyc: async (id, kycStatus, notes) => {
-    const response = await api.put(`/drivers/${id}/kyc`, { kycStatus, notes });
+    const response = await api.put(`/admin/drivers/${id}/kyc`, { kycStatus, notes });
     return response.data;
   },
   
   getPerformance: async (id, params = {}) => {
-    const response = await api.get(`/drivers/${id}/performance`, { params });
+    const response = await api.get(`/admin/drivers/${id}/performance`, { params });
     return response.data;
   }
 };
@@ -128,17 +128,17 @@ export const driversService = {
 // Vehicles API
 export const vehiclesService = {
   getAll: async (params = {}) => {
-    const response = await api.get('/vehicles', { params });
+    const response = await api.get('/admin/vehicles', { params });
     return response.data;
   },
   
   create: async (data) => {
-    const response = await api.post('/vehicles', data);
+    const response = await api.post('/admin/vehicles', data);
     return response.data;
   },
   
   update: async (id, data) => {
-    const response = await api.put(`/vehicles/${id}`, data);
+    const response = await api.put(`/admin/vehicles/${id}`, data);
     return response.data;
   }
 };
@@ -146,22 +146,22 @@ export const vehiclesService = {
 // Customers API
 export const customersService = {
   getAll: async (params = {}) => {
-    const response = await api.get('/users/customers', { params });
+    const response = await api.get('/admin/users/customers', { params });
     return response.data;
   },
   
   getById: async (id) => {
-    const response = await api.get(`/users/customers/${id}`);
+    const response = await api.get(`/admin/users/customers/${id}`);
     return response.data;
   },
   
   update: async (id, data) => {
-    const response = await api.put(`/users/customers/${id}`, data);
+    const response = await api.put(`/admin/users/customers/${id}`, data);
     return response.data;
   },
   
   getStats: async (id) => {
-    const response = await api.get(`/users/customers/${id}/stats`);
+    const response = await api.get(`/admin/users/customers/${id}/stats`);
     return response.data;
   }
 };
@@ -169,22 +169,22 @@ export const customersService = {
 // Packages API
 export const packagesService = {
   getAll: async (params = {}) => {
-    const response = await api.get('/packages', { params });
+    const response = await api.get('/admin/packages', { params });
     return response.data;
   },
   
   create: async (data) => {
-    const response = await api.post('/packages', data);
+    const response = await api.post('/admin/packages', data);
     return response.data;
   },
   
   update: async (id, data) => {
-    const response = await api.put(`/packages/${id}`, data);
+    const response = await api.put(`/admin/packages/${id}`, data);
     return response.data;
   },
   
   calculatePricing: async (id, data) => {
-    const response = await api.post(`/packages/${id}/pricing`, data);
+    const response = await api.post(`/admin/packages/${id}/pricing`, data);
     return response.data;
   }
 };
@@ -192,22 +192,22 @@ export const packagesService = {
 // Payments API
 export const paymentsService = {
   getDashboard: async () => {
-    const response = await api.get('/payments/dashboard');
+    const response = await api.get('/admin/payments/dashboard');
     return response.data;
   },
   
   processPayment: async (data) => {
-    const response = await api.post('/payments/process', data);
+    const response = await api.post('/admin/payments/process', data);
     return response.data;
   },
   
   getTransactions: async (params = {}) => {
-    const response = await api.get('/payments/transactions', { params });
+    const response = await api.get('/admin/payments/transactions', { params });
     return response.data;
   },
   
   settleDriver: async (data) => {
-    const response = await api.post('/payments/settle-driver', data);
+    const response = await api.post('/admin/payments/settle-driver', data);
     return response.data;
   }
 };
@@ -215,27 +215,27 @@ export const paymentsService = {
 // Reports API
 export const reportsService = {
   getTripReports: async (params = {}) => {
-    const response = await api.get('/reports/trips', { params });
+    const response = await api.get('/admin/reports/trips', { params });
     return response.data;
   },
   
   getRevenueReports: async (params = {}) => {
-    const response = await api.get('/reports/revenue', { params });
+    const response = await api.get('/admin/reports/revenue', { params });
     return response.data;
   },
   
   getCustomerAnalytics: async () => {
-    const response = await api.get('/reports/customers');
+    const response = await api.get('/admin/reports/customers');
     return response.data;
   },
   
   getDriverReports: async (params = {}) => {
-    const response = await api.get('/reports/drivers', { params });
+    const response = await api.get('/admin/reports/drivers', { params });
     return response.data;
   },
   
   getVehicleReports: async (params = {}) => {
-    const response = await api.get('/reports/vehicles', { params });
+    const response = await api.get('/admin/reports/vehicles', { params });
     return response.data;
   }
 };
@@ -243,27 +243,27 @@ export const reportsService = {
 // Settings API
 export const settingsService = {
   getAll: async () => {
-    const response = await api.get('/settings');
+    const response = await api.get('/admin/settings');
     return response.data;
   },
   
   updateGeneral: async (data) => {
-    const response = await api.put('/settings/general', data);
+    const response = await api.put('/admin/settings/general', data);
     return response.data;
   },
   
   getCities: async () => {
-    const response = await api.get('/settings/cities');
+    const response = await api.get('/admin/settings/cities');
     return response.data;
   },
   
   addCity: async (data) => {
-    const response = await api.post('/settings/cities', data);
+    const response = await api.post('/admin/settings/cities', data);
     return response.data;
   },
   
   updatePricing: async (data) => {
-    const response = await api.put('/settings/pricing', data);
+    const response = await api.put('/admin/settings/pricing', data);
     return response.data;
   }
 };

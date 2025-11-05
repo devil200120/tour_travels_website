@@ -1,0 +1,505 @@
+{
+  "info": {
+    "name": "Tour Travels - Enhanced Driver App APIs with Google Maps",
+    "description": "Complete API collection for Tour Travels Driver Application with Google Maps integration for accurate distance, routing, and fare calculations",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "2.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{driver_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api/driver",
+      "type": "string"
+    },
+    {
+      "key": "driver_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "driver_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Driver Authentication",
+      "item": [
+        {
+          "name": "Driver Signup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('driver_token', response.token);",
+                  "    pm.collectionVariables.set('driver_id', response.driver.id);",
+                  "    pm.test('Driver registered successfully', function () {",
+                  "        pm.expect(response.token).to.exist;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Rajesh Kumar\",\n    \"email\": \"rajesh.driver@example.com\",\n    \"phone\": \"+919876543210\",\n    \"password\": \"driver123\",\n    \"address\": {\n        \"street\": \"123 Driver Street\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharashtra\",\n        \"pincode\": \"400001\",\n        \"country\": \"India\"\n    },\n    \"licenseNumber\": \"MH02DL123456789\",\n    \"vehicleDetails\": {\n        \"make\": \"Maruti\",\n        \"model\": \"Swift Dzire\",\n        \"plateNumber\": \"MH02AB1234\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/signup",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "signup"]
+            }
+          }
+        },
+        {
+          "name": "Driver Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('driver_token', response.token);",
+                  "    pm.collectionVariables.set('driver_id', response.driver.id);",
+                  "    pm.test('Login successful', function () {",
+                  "        pm.expect(response.token).to.exist;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"rajesh.driver@example.com\",\n    \"password\": \"driver123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Driver Dashboard",
+      "item": [
+        {
+          "name": "Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dashboard/overview",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "overview"]
+            }
+          }
+        },
+        {
+          "name": "Today's Rides",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dashboard/today-rides",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "today-rides"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚗 Trip Management with Google Maps",
+      "item": [
+        {
+          "name": "Get Available Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/trips/orders",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Accept Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"estimatedArrival\": 10,\n    \"currentLocation\": {\n        \"latitude\": 19.0760,\n        \"longitude\": 72.8777\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/orders/ORDER_ID/accept",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders", "ORDER_ID", "accept"]
+            }
+          }
+        },
+        {
+          "name": "Start Trip",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startLocation\": {\n        \"coordinates\": [72.8777, 19.0760],\n        \"address\": \"Mumbai Central\"\n    },\n    \"odometerReading\": 12500\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/orders/ORDER_ID/start",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders", "ORDER_ID", "start"]
+            }
+          }
+        },
+        {
+          "name": "Get Navigation Details (Google Maps Enhanced)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/trips/orders/ORDER_ID/navigation",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders", "ORDER_ID", "navigation"]
+            },
+            "description": "Get enhanced navigation details with Google Maps routing, real-time traffic, and step-by-step directions"
+          }
+        },
+        {
+          "name": "Update Location",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"latitude\": 19.0760,\n    \"longitude\": 72.8777,\n    \"heading\": 45,\n    \"speed\": 25\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/orders/ORDER_ID/location",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders", "ORDER_ID", "location"]
+            }
+          }
+        },
+        {
+          "name": "Complete Trip (Google Maps Distance)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"endLocation\": {\n        \"coordinates\": [72.8258, 18.9750],\n        \"address\": \"Bandra West, Mumbai\"\n    },\n    \"odometerReading\": 12525,\n    \"tripSummary\": {\n        \"rating\": 5,\n        \"feedback\": \"Great trip, customer was friendly\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/orders/ORDER_ID/complete",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders", "ORDER_ID", "complete"]
+            },
+            "description": "Complete trip with automatic Google Maps distance calculation"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🗺️ Google Maps Services",
+      "item": [
+        {
+          "name": "Calculate Fare with Google Maps",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"pickup\": {\n        \"latitude\": 19.0760,\n        \"longitude\": 72.8777\n    },\n    \"dropoff\": {\n        \"latitude\": 18.9750,\n        \"longitude\": 72.8258\n    },\n    \"vehicleType\": \"standard\",\n    \"options\": {\n        \"baseRate\": 50,\n        \"perKmRate\": 15,\n        \"perMinuteRate\": 2,\n        \"surgeMultiplier\": 1.2,\n        \"minimumFare\": 100\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/calculate-fare",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "calculate-fare"]
+            },
+            "description": "Calculate fare using Google Maps distance and duration with real-time traffic data"
+          }
+        },
+        {
+          "name": "Geocode Address",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"address\": \"Gateway of India, Mumbai, Maharashtra, India\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/geocode",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "geocode"]
+            },
+            "description": "Convert address to coordinates using Google Maps Geocoding API"
+          }
+        },
+        {
+          "name": "Reverse Geocode Coordinates",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"latitude\": 18.9220,\n    \"longitude\": 72.8347\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/reverse-geocode",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "reverse-geocode"]
+            },
+            "description": "Convert coordinates to address using Google Maps Reverse Geocoding API"
+          }
+        },
+        {
+          "name": "Optimize Route (Multiple Stops)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"origin\": {\n        \"latitude\": 19.0760,\n        \"longitude\": 72.8777\n    },\n    \"destination\": {\n        \"latitude\": 18.9750,\n        \"longitude\": 72.8258\n    },\n    \"waypoints\": [\n        {\n            \"latitude\": 19.0596,\n            \"longitude\": 72.8295\n        },\n        {\n            \"latitude\": 19.0176,\n            \"longitude\": 72.8562\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/optimize-route",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "optimize-route"]
+            },
+            "description": "Optimize route for multiple stops using Google Maps Directions API with waypoint optimization"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Driver Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/profile",
+              "host": ["{{base_url}}"],
+              "path": ["profile"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"phone\": \"+919876543210\",\n    \"address\": {\n        \"street\": \"456 Updated Street\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharashtra\",\n        \"pincode\": \"400002\"\n    },\n    \"languages\": [\"English\", \"Hindi\", \"Marathi\", \"Gujarati\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile",
+              "host": ["{{base_url}}"],
+              "path": ["profile"]
+            }
+          }
+        },
+        {
+          "name": "Toggle Availability",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"isAvailable\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/availability",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "availability"]
+            }
+          }
+        },
+        {
+          "name": "Update Location",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"latitude\": 19.0760,\n    \"longitude\": 72.8777,\n    \"address\": \"Mumbai Central, Mumbai\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/location",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "location"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💰 Earnings & Payments",
+      "item": [
+        {
+          "name": "Today's Earnings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/earnings/today",
+              "host": ["{{base_url}}"],
+              "path": ["earnings", "today"]
+            }
+          }
+        },
+        {
+          "name": "Earnings History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/earnings/history?page=1&limit=10&startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["earnings", "history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Request Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"amount\": 5000,\n    \"paymentMethod\": \"bank_transfer\",\n    \"bankDetails\": {\n        \"accountNumber\": \"1234567890\",\n        \"ifscCode\": \"HDFC0001234\",\n        \"accountHolderName\": \"Rajesh Kumar\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/earnings/withdraw",
+              "host": ["{{base_url}}"],
+              "path": ["earnings", "withdraw"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

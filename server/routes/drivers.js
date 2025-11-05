@@ -431,6 +431,617 @@ router.get('/available/nearby',
   }
 );
 
+// Get driver dashboard stats
+router.get('/:id/dashboard',
+  authenticateToken,
+  checkPermission('drivers', 'read'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const driver = await Driver.findById(id);
+      
+      if (!driver) {
+        return res.status(404).json({ message: 'Driver not found' });
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+
+      // Today's stats
+      const todayBookings = await Booking.find({
+        assignedDriver: driver._id,
+        createdAt: { $gte: today, $lt: tomorrow }
+      });
+
+      const todayStats = {
+        totalTrips: todayBookings.length,
+        completedTrips: todayBookings.filter(b => b.status === 'Completed').length,
+        ongoingTrips: todayBookings.filter(b => b.status === 'In Progress').length,
+        totalEarnings: todayBookings
+          .filter(b => b.status === 'Completed')
+          .reduce((sum, b) => sum + (b.pricing?.totalAmount || 0), 0),
+        totalDistance: todayBookings
+          .filter(b => b.status === 'Completed')
+          .reduce((sum, b) => sum + (b.tripDetails?.totalDistance || 0), 0),
+        totalDuration: todayBookings
+          .filter(b => b.status === 'Completed')
+          .reduce((sum, b) => sum + (b.tripDetails?.totalDuration || 0), 0)
+      };
+
+      // Weekly stats
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay());
+      
+      const weeklyBookings = await Booking.find({
+        assignedDriver: driver._id,
+        createdAt: { $gte: weekStart }
+      });
+
+      const weeklyStats = {
+        totalTrips: weeklyBookings.length,
+        completedTrips: weeklyBookings.filter(b => b.status === 'Completed').length,
+        totalEarnings: weeklyBookings
+          .filter(b => b.status === 'Completed')
+          .reduce((sum, b) => sum + (b.pricing?.totalAmount || 0), 0),
+        totalDistance: weeklyBookings
+          .filter(b => b.status === 'Completed')
+          .reduce((sum, b) => sum + (b.tripDetails?.totalDistance || 0), 0)
+      };
+
+      // Monthly stats
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      
+      const monthlyBookings = await Booking.find({
+        assignedDriver: driver._id,
+        createdAt: { $gte: monthStart }
+      });
+
+      const monthlyStats = {
+        totalTrips: monthlyBookings.length,
+        completedTrips: monthlyBookings.filter(b => b.status === 'Completed').length,
+        totalEarnings: monthlyBookings
+          .filter(b => b.status === 'Completed')
+          .reduce((sum, b) => sum + (b.pricing?.totalAmount || 0), 0),
+        totalDistance: monthlyBookings
+          .filter(b => b.status === 'Completed')
+          .reduce((sum, b) => sum + (b.tripDetails?.totalDistance || 0), 0)
+      };
+
+      res.json({
+        driver: {
+          id: driver._id,
+          name: driver.name,
+          email: driver.email,
+          phone: driver.phone,
+          rating: driver.rating,
+          kycStatus: driver.kycStatus,
+          isActive: driver.isActive,
+          isAvailable: driver.isAvailable
+        },
+        today: todayStats,
+        weekly: weeklyStats,
+        monthly: monthlyStats
+      });
+    } catch (error) {
+      console.error('Get driver dashboard error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
+// Get driver's assigned orders
+router.get('/:id/orders',
+  authenticateToken,
+  checkPermission('drivers', 'read'),
+  [
+    query('status').optional().isIn(['Pending', 'Confirmed', 'In Progress', 'Completed', 'Cancelled']),
+    query('page').optional().isInt({ min: 1 }),
+    query('limit').optional().isInt({ min: 1, max: 50 })
+  ],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, page = 1, limit = 10 } = req.query;
+      
+      const driver = await Driver.findById(id);
+      if (!driver) {
+        return res.status(404).json({ message: 'Driver not found' });
+      }
+
+      let query = { assignedDriver: driver._id };
+      if (status) query.status = status;
+
+      const skip = (page - 1) * limit;
+      
+      const orders = await Booking.find(query)
+        .populate('customer', 'name email phone')
+        .populate('vehicle', 'vehicleNumber brand model')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      const total = await Booking.countDocuments(query);
+
+      res.json({
+        orders,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error) {
+      console.error('Get driver orders error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
+// Auto-assign orders to available drivers
+router.post('/auto-assign',
+  authenticateToken,
+  checkPermission('drivers', 'update'),
+  [
+    body('bookingId').isMongoId(),
+    body('preferredDriverId').optional().isMongoId(),
+    body('maxRadius').optional().isInt({ min: 1, max: 50 })
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { bookingId, preferredDriverId, maxRadius = 10 } = req.body;
+
+      const booking = await Booking.findById(bookingId);
+      if (!booking) {
+        return res.status(404).json({ message: 'Booking not found' });
+      }
+
+      if (booking.assignedDriver) {
+        return res.status(400).json({ message: 'Booking already assigned' });
+      }
+
+      let assignedDriver = null;
+
+      // Try preferred driver first
+      if (preferredDriverId) {
+        const preferredDriver = await Driver.findById(preferredDriverId);
+        if (preferredDriver && preferredDriver.isActive && preferredDriver.isAvailable && preferredDriver.kycStatus === 'Approved') {
+          assignedDriver = preferredDriver;
+        }
+      }
+
+      // If no preferred driver or not available, find nearby drivers
+      if (!assignedDriver && booking.pickupLocation?.coordinates) {
+        const [longitude, latitude] = booking.pickupLocation.coordinates;
+        
+        const nearbyDrivers = await Driver.find({
+          isActive: true,
+          isAvailable: true,
+          kycStatus: 'Approved',
+          'currentLocation.latitude': { $exists: true },
+          'currentLocation.longitude': { $exists: true }
+        }).sort({ 'rating.average': -1 });
+
+        // Find closest available driver within radius
+        for (const driver of nearbyDrivers) {
+          const distance = calculateDistance(
+            latitude,
+            longitude,
+            driver.currentLocation.latitude,
+            driver.currentLocation.longitude
+          );
+          
+          if (distance <= maxRadius) {
+            assignedDriver = driver;
+            break;
+          }
+        }
+      }
+
+      if (!assignedDriver) {
+        return res.status(404).json({ message: 'No available drivers found' });
+      }
+
+      // Assign the driver
+      booking.assignedDriver = assignedDriver._id;
+      booking.status = 'Confirmed';
+      booking.assignedAt = new Date();
+      await booking.save();
+
+      // Update driver availability
+      assignedDriver.isAvailable = false;
+      await assignedDriver.save();
+
+      // Emit real-time notification
+      const io = req.app.get('io');
+      io.emit('booking_assigned', {
+        bookingId: booking._id,
+        driverId: assignedDriver._id,
+        customerName: booking.customer?.name
+      });
+
+      res.json({
+        message: 'Driver assigned successfully',
+        booking,
+        assignedDriver: {
+          id: assignedDriver._id,
+          name: assignedDriver.name,
+          phone: assignedDriver.phone,
+          rating: assignedDriver.rating
+        }
+      });
+    } catch (error) {
+      console.error('Auto-assign driver error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
+// Update driver earnings and settlement
+router.put('/:id/earnings',
+  authenticateToken,
+  checkPermission('drivers', 'update'),
+  [
+    body('amount').isFloat({ min: 0 }),
+    body('type').isIn(['add', 'deduct', 'settle']),
+    body('description').notEmpty().trim(),
+    body('bookingId').optional().isMongoId()
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { id } = req.params;
+      const { amount, type, description, bookingId } = req.body;
+
+      const driver = await Driver.findById(id);
+      if (!driver) {
+        return res.status(404).json({ message: 'Driver not found' });
+      }
+
+      let newTotalEarnings = driver.totalEarnings || 0;
+      
+      switch (type) {
+        case 'add':
+          newTotalEarnings += amount;
+          break;
+        case 'deduct':
+          newTotalEarnings -= amount;
+          break;
+        case 'settle':
+          newTotalEarnings = 0; // Reset earnings after settlement
+          break;
+      }
+
+      driver.totalEarnings = Math.max(0, newTotalEarnings);
+      await driver.save();
+
+      // Create earnings record (you might want to create a separate EarningsHistory model)
+      const earningsRecord = {
+        driverId: driver._id,
+        amount,
+        type,
+        description,
+        bookingId,
+        previousBalance: driver.totalEarnings,
+        newBalance: newTotalEarnings,
+        createdAt: new Date(),
+        createdBy: req.user._id
+      };
+
+      res.json({
+        message: `Earnings ${type} successful`,
+        driver: {
+          id: driver._id,
+          name: driver.name,
+          totalEarnings: driver.totalEarnings
+        },
+        transaction: earningsRecord
+      });
+    } catch (error) {
+      console.error('Update driver earnings error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
+// Update driver profile/settings
+router.put('/:id/profile',
+  authenticateToken,
+  checkPermission('drivers', 'update'),
+  [
+    body('personalInfo.name').optional().trim().isLength({ min: 2 }),
+    body('personalInfo.phone').optional().isMobilePhone('en-IN'),
+    body('personalInfo.alternatePhone').optional().isMobilePhone('en-IN'),
+    body('personalInfo.address').optional().isObject(),
+    body('preferences.languages').optional().isArray(),
+    body('preferences.specializations').optional().isArray(),
+    body('preferences.workingHours').optional().isObject(),
+    body('bankDetails').optional().isObject(),
+    body('emergencyContact').optional().isObject()
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { id } = req.params;
+      const updateData = req.body;
+
+      // Flatten the update data
+      let flatUpdate = {};
+      
+      if (updateData.personalInfo) {
+        if (updateData.personalInfo.name) flatUpdate.name = updateData.personalInfo.name;
+        if (updateData.personalInfo.phone) flatUpdate.phone = updateData.personalInfo.phone;
+        if (updateData.personalInfo.alternatePhone) flatUpdate.alternatePhone = updateData.personalInfo.alternatePhone;
+        if (updateData.personalInfo.address) flatUpdate.address = updateData.personalInfo.address;
+      }
+
+      if (updateData.preferences) {
+        if (updateData.preferences.languages) flatUpdate.languages = updateData.preferences.languages;
+        if (updateData.preferences.specializations) flatUpdate.specializations = updateData.preferences.specializations;
+        if (updateData.preferences.workingHours) flatUpdate.workingHours = updateData.preferences.workingHours;
+      }
+
+      if (updateData.bankDetails) flatUpdate.bankDetails = updateData.bankDetails;
+      if (updateData.emergencyContact) flatUpdate.emergencyContact = updateData.emergencyContact;
+
+      const driver = await Driver.findByIdAndUpdate(
+        id,
+        flatUpdate,
+        { new: true, runValidators: true }
+      );
+
+      if (!driver) {
+        return res.status(404).json({ message: 'Driver not found' });
+      }
+
+      res.json({
+        message: 'Driver profile updated successfully',
+        driver
+      });
+    } catch (error) {
+      console.error('Update driver profile error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
+// Get driver's earnings history
+router.get('/:id/earnings/history',
+  authenticateToken,
+  checkPermission('drivers', 'read'),
+  [
+    query('startDate').optional().isISO8601(),
+    query('endDate').optional().isISO8601(),
+    query('type').optional().isIn(['add', 'deduct', 'settle']),
+    query('page').optional().isInt({ min: 1 }),
+    query('limit').optional().isInt({ min: 1, max: 100 })
+  ],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { startDate, endDate, type, page = 1, limit = 20 } = req.query;
+
+      const driver = await Driver.findById(id);
+      if (!driver) {
+        return res.status(404).json({ message: 'Driver not found' });
+      }
+
+      // Build date filter for completed bookings
+      let dateFilter = { assignedDriver: driver._id, status: 'Completed' };
+      if (startDate || endDate) {
+        dateFilter.completedAt = {};
+        if (startDate) dateFilter.completedAt.$gte = new Date(startDate);
+        if (endDate) dateFilter.completedAt.$lte = new Date(endDate);
+      }
+
+      const skip = (page - 1) * limit;
+
+      const earningsHistory = await Booking.find(dateFilter)
+        .populate('customer', 'name email')
+        .select('bookingId customer pricing.totalAmount pricing.driverEarnings completedAt tripDetails.totalDistance')
+        .sort({ completedAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      const total = await Booking.countDocuments(dateFilter);
+
+      // Calculate summary
+      const summary = await Booking.aggregate([
+        { $match: dateFilter },
+        {
+          $group: {
+            _id: null,
+            totalEarnings: { $sum: '$pricing.driverEarnings' },
+            totalTrips: { $sum: 1 },
+            totalDistance: { $sum: '$tripDetails.totalDistance' },
+            avgEarningsPerTrip: { $avg: '$pricing.driverEarnings' }
+          }
+        }
+      ]);
+
+      res.json({
+        summary: summary[0] || {
+          totalEarnings: 0,
+          totalTrips: 0,
+          totalDistance: 0,
+          avgEarningsPerTrip: 0
+        },
+        earningsHistory,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error) {
+      console.error('Get driver earnings history error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
+// Toggle driver availability
+router.put('/:id/availability',
+  authenticateToken,
+  checkPermission('drivers', 'update'),
+  [
+    body('isAvailable').isBoolean(),
+    body('reason').optional().trim()
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { id } = req.params;
+      const { isAvailable, reason } = req.body;
+
+      const driver = await Driver.findByIdAndUpdate(
+        id,
+        { 
+          isAvailable,
+          ...(reason && { 'availabilityReason': reason }),
+          'availabilityUpdatedAt': new Date()
+        },
+        { new: true }
+      );
+
+      if (!driver) {
+        return res.status(404).json({ message: 'Driver not found' });
+      }
+
+      // Emit real-time status update
+      const io = req.app.get('io');
+      io.emit('driver_availability_update', {
+        driverId: driver._id,
+        isAvailable: driver.isAvailable,
+        timestamp: new Date()
+      });
+
+      res.json({
+        message: `Driver availability ${isAvailable ? 'enabled' : 'disabled'}`,
+        driver: {
+          id: driver._id,
+          name: driver.name,
+          isAvailable: driver.isAvailable,
+          availabilityUpdatedAt: driver.availabilityUpdatedAt
+        }
+      });
+    } catch (error) {
+      console.error('Toggle driver availability error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
+// Get drivers statistics for admin dashboard
+router.get('/stats/overview',
+  authenticateToken,
+  checkPermission('drivers', 'read'),
+  async (req, res) => {
+    try {
+      const totalDrivers = await Driver.countDocuments();
+      const activeDrivers = await Driver.countDocuments({ isActive: true });
+      const availableDrivers = await Driver.countDocuments({ isActive: true, isAvailable: true });
+      const approvedDrivers = await Driver.countDocuments({ kycStatus: 'Approved' });
+      const pendingKyc = await Driver.countDocuments({ kycStatus: 'Pending' });
+
+      // Today's stats
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+
+      const todayRegistrations = await Driver.countDocuments({
+        createdAt: { $gte: today, $lt: tomorrow }
+      });
+
+      // Top performers this month
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      
+      const topPerformers = await Booking.aggregate([
+        {
+          $match: {
+            status: 'Completed',
+            completedAt: { $gte: monthStart },
+            assignedDriver: { $exists: true }
+          }
+        },
+        {
+          $group: {
+            _id: '$assignedDriver',
+            totalTrips: { $sum: 1 },
+            totalEarnings: { $sum: '$pricing.driverEarnings' },
+            totalDistance: { $sum: '$tripDetails.totalDistance' },
+            avgRating: { $avg: '$feedback.driverRating' }
+          }
+        },
+        {
+          $lookup: {
+            from: 'drivers',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'driver'
+          }
+        },
+        {
+          $unwind: '$driver'
+        },
+        {
+          $project: {
+            driverId: '$_id',
+            name: '$driver.name',
+            phone: '$driver.phone',
+            totalTrips: 1,
+            totalEarnings: 1,
+            totalDistance: 1,
+            avgRating: 1
+          }
+        },
+        {
+          $sort: { totalTrips: -1 }
+        },
+        {
+          $limit: 5
+        }
+      ]);
+
+      res.json({
+        overview: {
+          totalDrivers,
+          activeDrivers,
+          availableDrivers,
+          approvedDrivers,
+          pendingKyc,
+          todayRegistrations
+        },
+        topPerformers
+      });
+    } catch (error) {
+      console.error('Get drivers stats error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
 // Helper function to calculate distance between two points
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // Radius of the Earth in km

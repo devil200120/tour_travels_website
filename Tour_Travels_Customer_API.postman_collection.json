@@ -1,0 +1,1067 @@
+{
+  "info": {
+    "name": "Tour & Travels - Customer Mobile App APIs",
+    "description": "Complete API collection for Tour & Travels customer mobile application backend. Includes authentication, booking, payments, real-time tracking, and support APIs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "customerToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{customerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Customer Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+919876543210\",\n  \"password\": \"securePassword123\",\n  \"deviceInfo\": {\n    \"deviceId\": \"device123\",\n    \"deviceType\": \"android\",\n    \"fcmToken\": \"fcm_token_here\",\n    \"appVersion\": \"1.0.0\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "auth", "register"]
+            },
+            "description": "Register a new customer account with phone and email verification"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"customer_id_from_registration\",\n  \"type\": \"phone\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "auth", "verify-otp"]
+            },
+            "description": "Verify phone or email OTP during registration"
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emailOrPhone\": \"john.doe@example.com\",\n  \"password\": \"securePassword123\",\n  \"deviceInfo\": {\n    \"deviceId\": \"device123\",\n    \"deviceType\": \"android\",\n    \"fcmToken\": \"fcm_token_here\",\n    \"appVersion\": \"1.0.0\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "auth", "login"]
+            },
+            "description": "Login with email/phone and password",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "if (pm.response.code === 200) {",
+                    "    const response = pm.response.json();",
+                    "    if (response.success && response.data.token) {",
+                    "        pm.collectionVariables.set('customerToken', response.data.token);",
+                    "    }",
+                    "}"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ]
+          },
+          "response": []
+        },
+        {
+          "name": "Social Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"google\",\n  \"socialId\": \"google_user_id\",\n  \"email\": \"john.doe@gmail.com\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"profileImage\": \"https://profile-image-url.com\",\n  \"deviceInfo\": {\n    \"deviceId\": \"device123\",\n    \"deviceType\": \"android\",\n    \"fcmToken\": \"fcm_token_here\",\n    \"appVersion\": \"1.0.0\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/auth/social-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "auth", "social-login"]
+            },
+            "description": "Login using Google, Apple, or Facebook"
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emailOrPhone\": \"john.doe@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "auth", "forgot-password"]
+            },
+            "description": "Send password reset instructions"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resetToken\": \"reset_token_from_email\",\n  \"newPassword\": \"newSecurePassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "auth", "reset-password"]
+            },
+            "description": "Reset password using token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Profile Management",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "profile"]
+            },
+            "description": "Get customer profile information"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John Updated\",\n  \"lastName\": \"Doe Updated\",\n  \"dateOfBirth\": \"1990-01-15\",\n  \"gender\": \"Male\",\n  \"emergencyContact\": {\n    \"name\": \"Jane Doe\",\n    \"phone\": \"+919876543211\",\n    \"relationship\": \"Spouse\"\n  },\n  \"preferences\": {\n    \"language\": \"en\",\n    \"currency\": \"INR\",\n    \"notifications\": {\n      \"push\": true,\n      \"sms\": true,\n      \"email\": false\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "profile"]
+            },
+            "description": "Update customer profile information"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Addresses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/profile/addresses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "profile", "addresses"]
+            },
+            "description": "Get customer's saved addresses"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Address",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Home\",\n  \"address\": \"123 Main Street, City, State - 123456\",\n  \"landmark\": \"Near City Mall\",\n  \"latitude\": 19.0760,\n  \"longitude\": 72.8777,\n  \"isDefault\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/profile/addresses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "profile", "addresses"]
+            },
+            "description": "Add a new address to address book"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"currentPassword123\",\n  \"newPassword\": \"newSecurePassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/profile/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "profile", "change-password"]
+            },
+            "description": "Change customer password"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Booking & Vehicles",
+      "item": [
+        {
+          "name": "Get Vehicle Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/bookings/vehicle-categories?city=Mumbai",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "bookings", "vehicle-categories"],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Mumbai"
+                }
+              ]
+            },
+            "description": "Get available vehicle categories with pricing"
+          },
+          "response": []
+        },
+        {
+          "name": "Estimate Fare",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickup\": {\n    \"address\": \"Mumbai Airport, Mumbai\",\n    \"latitude\": 19.0896,\n    \"longitude\": 72.8656\n  },\n  \"destination\": {\n    \"address\": \"Gateway of India, Mumbai\",\n    \"latitude\": 18.9220,\n    \"longitude\": 72.8347\n  },\n  \"serviceType\": \"one_way\",\n  \"vehicleCategory\": \"Sedan\",\n  \"pickupDate\": \"2025-10-01\",\n  \"pickupTime\": \"10:00\",\n  \"promoCode\": \"FIRST50\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/bookings/estimate-fare",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "bookings", "estimate-fare"]
+            },
+            "description": "Get fare estimation for a trip"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Package Tours",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/bookings/packages?city=Delhi&duration=3&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "bookings", "packages"],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Delhi"
+                },
+                {
+                  "key": "duration",
+                  "value": "3"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get available package tours"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingType\": \"outstation\",\n  \"serviceType\": \"one_way\",\n  \"pickup\": {\n    \"address\": \"Mumbai Airport, Mumbai\",\n    \"latitude\": 19.0896,\n    \"longitude\": 72.8656\n  },\n  \"destination\": {\n    \"address\": \"Pune Railway Station, Pune\",\n    \"latitude\": 18.5204,\n    \"longitude\": 73.8567\n  },\n  \"pickupDate\": \"2025-10-01\",\n  \"pickupTime\": \"10:00\",\n  \"passengers\": [\n    {\n      \"name\": \"John Doe\",\n      \"age\": 30,\n      \"gender\": \"Male\"\n    }\n  ],\n  \"luggageCount\": 2,\n  \"vehicleCategory\": \"Sedan\",\n  \"vehiclePreferences\": {\n    \"acRequired\": true,\n    \"fuelType\": \"Petrol\"\n  },\n  \"paymentMethod\": \"UPI\",\n  \"promoCode\": \"FIRST50\",\n  \"specialRequests\": \"Please call before arrival\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/bookings/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "bookings", "create"]
+            },
+            "description": "Create a new booking"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/bookings/my-bookings?status=confirmed&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "bookings", "my-bookings"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "confirmed"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get customer's booking history"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"Change of plans\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/bookings/booking_id_here/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "bookings", "booking_id_here", "cancel"]
+            },
+            "description": "Cancel a booking"
+          },
+          "response": []
+        },
+        {
+          "name": "Rate Trip",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverRating\": 5,\n  \"vehicleRating\": 4,\n  \"serviceRating\": 5,\n  \"overallRating\": 5,\n  \"feedback\": \"Excellent service! Driver was very professional and the vehicle was clean.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/bookings/booking_id_here/rate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "bookings", "booking_id_here", "rate"]
+            },
+            "description": "Rate and review a completed trip"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Real-Time Tracking",
+      "item": [
+        {
+          "name": "Get Active Trips",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/trips/active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "trips", "active"]
+            },
+            "description": "Get customer's active trips"
+          },
+          "response": []
+        },
+        {
+          "name": "Track Trip",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/trips/trip_id_here/track",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "trips", "trip_id_here", "track"]
+            },
+            "description": "Get real-time tracking for a trip"
+          },
+          "response": []
+        },
+        {
+          "name": "Send SOS Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location\": {\n    \"latitude\": 19.0760,\n    \"longitude\": 72.8777\n  },\n  \"message\": \"Emergency assistance needed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/trips/trip_id_here/sos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "trips", "trip_id_here", "sos"]
+            },
+            "description": "Send emergency SOS alert"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Message to Driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I'm running 5 minutes late, please wait\",\n  \"messageType\": \"text\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/trips/trip_id_here/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "trips", "trip_id_here", "messages"]
+            },
+            "description": "Send message to driver"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Trip Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/trips/trip_id_here/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "trips", "trip_id_here", "messages"]
+            },
+            "description": "Get chat history with driver"
+          },
+          "response": []
+        },
+        {
+          "name": "Get ETA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/trips/trip_id_here/eta",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "trips", "trip_id_here", "eta"]
+            },
+            "description": "Get estimated time of arrival"
+          },
+          "response": []
+        },
+        {
+          "name": "Share Trip Location",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contacts\": [\"+919876543211\", \"friend@example.com\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/trips/trip_id_here/share-location",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "trips", "trip_id_here", "share-location"]
+            },
+            "description": "Share trip location with contacts"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Get Payment Methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payments/methods",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "payments", "methods"]
+            },
+            "description": "Get available payment methods"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Wallet Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payments/wallet",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "payments", "wallet"]
+            },
+            "description": "Get wallet balance and transaction history"
+          },
+          "response": []
+        },
+        {
+          "name": "Top-up Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000,\n  \"paymentMethod\": \"UPI\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payments/wallet/topup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "payments", "wallet", "topup"]
+            },
+            "description": "Add money to wallet"
+          },
+          "response": []
+        },
+        {
+          "name": "Process Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"booking_id_here\",\n  \"paymentMethod\": \"UPI\",\n  \"amount\": 1500,\n  \"upiId\": \"customer@paytm\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payments/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "payments", "process"]
+            },
+            "description": "Process payment for booking"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payments/history?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "payments", "history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get payment history"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Invoice",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payments/invoice/booking_id_here",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "payments", "invoice", "booking_id_here"]
+            },
+            "description": "Download/view invoice for booking"
+          },
+          "response": []
+        },
+        {
+          "name": "Request Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"booking_id_here\",\n  \"reason\": \"Trip was cancelled by customer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payments/refund",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "payments", "refund"]
+            },
+            "description": "Request refund for cancelled booking"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Support",
+      "item": [
+        {
+          "name": "Get Support Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/support/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "support", "categories"]
+            },
+            "description": "Get available support categories"
+          },
+          "response": []
+        },
+        {
+          "name": "Get FAQ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/support/faq?category=booking_issue",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "support", "faq"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "booking_issue"
+                }
+              ]
+            },
+            "description": "Get frequently asked questions"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Support Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"payment_issue\",\n  \"subject\": \"Payment was deducted but booking failed\",\n  \"description\": \"I made a payment for my booking but the booking shows as failed. However, the amount was deducted from my account. Please help resolve this issue.\",\n  \"bookingId\": \"booking_id_here\",\n  \"priority\": \"high\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/support/tickets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "support", "tickets"]
+            },
+            "description": "Create a support ticket"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Support Tickets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/support/tickets?status=open&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "support", "tickets"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get customer's support tickets"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Ticket Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/support/tickets/ticket_id_here",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "support", "tickets", "ticket_id_here"]
+            },
+            "description": "Get support ticket details"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Message to Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I tried the solution you suggested but the issue persists. Can you please check again?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/support/tickets/ticket_id_here/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "support", "tickets", "ticket_id_here", "messages"]
+            },
+            "description": "Add message to support ticket"
+          },
+          "response": []
+        },
+        {
+          "name": "Rate Support",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 5,\n  \"feedback\": \"Excellent support! Issue was resolved quickly and the agent was very helpful.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/support/tickets/ticket_id_here/rate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "support", "tickets", "ticket_id_here", "rate"]
+            },
+            "description": "Rate support ticket resolution"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Contact Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/support/contact",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "support", "contact"]
+            },
+            "description": "Get contact information"
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Feedback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"suggestion\",\n  \"subject\": \"App UI Improvement\",\n  \"message\": \"The booking flow could be simplified by reducing the number of steps. Maybe combine the vehicle selection and fare estimation in one screen.\",\n  \"rating\": 4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/support/feedback",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "support", "feedback"]
+            },
+            "description": "Submit general feedback (no auth required)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

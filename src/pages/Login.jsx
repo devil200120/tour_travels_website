@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
@@ -8,6 +9,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -16,8 +18,15 @@ const Login = () => {
 
     try {
       await login(email, password);
+      // Navigate to dashboard after successful login
+      navigate("/", { replace: true });
     } catch (error) {
-      setError(error.message || "Login failed");
+      console.error("Login error:", error);
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Login failed. Please check your credentials."
+      );
     } finally {
       setLoading(false);
     }
@@ -38,7 +47,9 @@ const Login = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg mb-4">
             <span className="text-white text-2xl font-bold">TT</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome Back
+          </h1>
           <p className="text-gray-600">Sign in to your admin dashboard</p>
         </div>
 
@@ -53,7 +64,10 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-semibold text-gray-700">
+              <label
+                htmlFor="email"
+                className="text-sm font-semibold text-gray-700"
+              >
                 Email Address
               </label>
               <div className="relative">
@@ -75,7 +89,10 @@ const Login = () => {
 
             {/* Password Field */}
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-semibold text-gray-700">
+              <label
+                htmlFor="password"
+                className="text-sm font-semibold text-gray-700"
+              >
                 Password
               </label>
               <div className="relative">
@@ -115,7 +132,9 @@ const Login = () => {
               ) : (
                 <>
                   <span>Sign In</span>
-                  <span className="transform group-hover:translate-x-1 transition-transform duration-200">→</span>
+                  <span className="transform group-hover:translate-x-1 transition-transform duration-200">
+                    →
+                  </span>
                 </>
               )}
             </button>
@@ -123,10 +142,17 @@ const Login = () => {
 
           {/* Demo Credentials */}
           <div className="mt-8 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200">
-            <h4 className="text-sm font-semibold text-amber-800 mb-2">🎯 Demo Credentials</h4>
+            <h4 className="text-sm font-semibold text-amber-800 mb-2">
+              🎯 Demo Credentials
+            </h4>
             <div className="space-y-1 text-sm text-amber-700">
-              <p><span className="font-medium">Email:</span> admin@tourtravels.com</p>
-              <p><span className="font-medium">Password:</span> admin123</p>
+              <p>
+                <span className="font-medium">Email:</span>{" "}
+                admin@tourtravels.com
+              </p>
+              <p>
+                <span className="font-medium">Password:</span> admin123
+              </p>
             </div>
           </div>
         </div>

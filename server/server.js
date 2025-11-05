@@ -19,13 +19,28 @@ import reportRoutes from './routes/reports.js';
 import notificationRoutes from './routes/notifications_simple.js';
 import settingsRoutes from './routes/settings.js';
 
+// Customer API routes
+import customerAuthRoutes from './routes/customer/auth.js';
+import customerBookingRoutes from './routes/customer/bookings.js';
+import customerProfileRoutes from './routes/customer/profile.js';
+import customerPaymentRoutes from './routes/customer/payments.js';
+import customerSupportRoutes from './routes/customer/support.js';
+import customerTripRoutes from './routes/customer/trips.js';
+
+// Driver API routes
+import driverAuthRoutes from './routes/driver/auth.js';
+import driverDashboardRoutes from './routes/driver/dashboard.js';
+import driverTripRoutes from './routes/driver/trips.js';
+import driverProfileRoutes from './routes/driver/profile.js';
+import driverEarningsRoutes from './routes/driver/earnings.js';
+
 dotenv.config();
 
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
     methods: ["GET", "POST"]
   }
 });
@@ -42,7 +57,7 @@ app.use('/api/', limiter);
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  origin: process.env.CLIENT_URL || "http://localhost:3000",
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -72,17 +87,32 @@ io.on('connection', (socket) => {
 // Make io available to routes
 app.set('io', io);
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/bookings', bookingRoutes);
-app.use('/api/drivers', driverRoutes);
-app.use('/api/vehicles', vehicleRoutes);
-app.use('/api/packages', packageRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/settings', settingsRoutes);
+// Admin Routes
+app.use('/api/admin/auth', authRoutes);
+app.use('/api/admin/users', userRoutes);
+app.use('/api/admin/bookings', bookingRoutes);
+app.use('/api/admin/drivers', driverRoutes);
+app.use('/api/admin/vehicles', vehicleRoutes);
+app.use('/api/admin/packages', packageRoutes);
+app.use('/api/admin/payments', paymentRoutes);
+app.use('/api/admin/reports', reportRoutes);
+app.use('/api/admin/notifications', notificationRoutes);
+app.use('/api/admin/settings', settingsRoutes);
+
+// Customer API Routes
+app.use('/api/customer/auth', customerAuthRoutes);
+app.use('/api/customer/bookings', customerBookingRoutes);
+app.use('/api/customer/profile', customerProfileRoutes);
+app.use('/api/customer/payments', customerPaymentRoutes);
+app.use('/api/customer/support', customerSupportRoutes);
+app.use('/api/customer/trips', customerTripRoutes);
+
+// Driver API Routes
+app.use('/api/driver/auth', driverAuthRoutes);
+app.use('/api/driver/dashboard', driverDashboardRoutes);
+app.use('/api/driver/trips', driverTripRoutes);
+app.use('/api/driver/profile', driverProfileRoutes);
+app.use('/api/driver/earnings', driverEarningsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -1,0 +1,827 @@
+{
+  "info": {
+    "name": "Tour Travels - Driver APIs",
+    "description": "Complete API collection for Tour Travels Driver management system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', response.token);",
+                  "    pm.test('Login successful', function () {",
+                  "        pm.expect(response.token).to.exist;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@tourtravels.com\",\n    \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Drivers Management",
+      "item": [
+        {
+          "name": "Get All Drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["drivers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Drivers with Filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers?kycStatus=Approved&isActive=true&search=john",
+              "host": ["{{base_url}}"],
+              "path": ["drivers"],
+              "query": [
+                {
+                  "key": "kycStatus",
+                  "value": "Approved"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                },
+                {
+                  "key": "search",
+                  "value": "john"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Driver by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers/{{driver_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "{{driver_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Create New Driver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('driver_id', response.driver._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"John Smith\",\n    \"email\": \"john.smith@example.com\",\n    \"phone\": \"+919876543210\",\n    \"alternatePhone\": \"+919876543211\",\n    \"address\": {\n        \"street\": \"123 Main Street\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharashtra\",\n        \"pincode\": \"400001\",\n        \"country\": \"India\"\n    },\n    \"dateOfBirth\": \"1990-05-15\",\n    \"licenseNumber\": \"MH12345678901\",\n    \"licenseExpiry\": \"2026-05-15\",\n    \"licenseType\": \"Light Motor Vehicle\",\n    \"experience\": 5,\n    \"bankDetails\": {\n        \"accountNumber\": \"1234567890\",\n        \"ifscCode\": \"SBIN0001234\",\n        \"bankName\": \"State Bank of India\",\n        \"accountHolderName\": \"John Smith\"\n    },\n    \"emergencyContact\": {\n        \"name\": \"Jane Smith\",\n        \"phone\": \"+919876543212\",\n        \"relation\": \"Wife\"\n    },\n    \"languages\": [\"English\", \"Hindi\", \"Marathi\"],\n    \"specializations\": [\"City Tours\", \"Airport Transfer\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/drivers",
+              "host": ["{{base_url}}"],
+              "path": ["drivers"]
+            }
+          }
+        },
+        {
+          "name": "Update Driver",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"John Smith Updated\",\n    \"experience\": 6,\n    \"isAvailable\": true,\n    \"specializations\": [\"City Tours\", \"Airport Transfer\", \"Outstation\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/drivers/{{driver_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "{{driver_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Driver KYC Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"kycStatus\": \"Approved\",\n    \"notes\": \"All documents verified successfully\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/drivers/{{driver_id}}/kyc",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "{{driver_id}}", "kyc"]
+            }
+          }
+        },
+        {
+          "name": "Update Driver Location",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"latitude\": 19.0760,\n    \"longitude\": 72.8777,\n    \"address\": \"Gateway of India, Mumbai\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/drivers/{{driver_id}}/location",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "{{driver_id}}", "location"]
+            }
+          }
+        },
+        {
+          "name": "Get Driver Performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers/{{driver_id}}/performance?startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "{{driver_id}}", "performance"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Available Drivers Nearby",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers/available/nearby?latitude=19.0760&longitude=72.8777&radius=10",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "available", "nearby"],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "19.0760"
+                },
+                {
+                  "key": "longitude",
+                  "value": "72.8777"
+                },
+                {
+                  "key": "radius",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Driver Status Management",
+      "item": [
+        {
+          "name": "Get Pending KYC Drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers?kycStatus=Pending",
+              "host": ["{{base_url}}"],
+              "path": ["drivers"],
+              "query": [
+                {
+                  "key": "kycStatus",
+                  "value": "Pending"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Under Review Drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers?kycStatus=Under Review",
+              "host": ["{{base_url}}"],
+              "path": ["drivers"],
+              "query": [
+                {
+                  "key": "kycStatus",
+                  "value": "Under Review"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Approved Drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers?kycStatus=Approved&isActive=true",
+              "host": ["{{base_url}}"],
+              "path": ["drivers"],
+              "query": [
+                {
+                  "key": "kycStatus",
+                  "value": "Approved"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Available Drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers?isAvailable=true&kycStatus=Approved&isActive=true",
+              "host": ["{{base_url}}"],
+              "path": ["drivers"],
+              "query": [
+                {
+                  "key": "isAvailable",
+                  "value": "true"
+                },
+                {
+                  "key": "kycStatus",
+                  "value": "Approved"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reject Driver KYC",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"kycStatus\": \"Rejected\",\n    \"notes\": \"Invalid license document. Please resubmit with clear image.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/drivers/{{driver_id}}/kyc",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "{{driver_id}}", "kyc"]
+            }
+          }
+        },
+        {
+          "name": "Set Driver Under Review",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"kycStatus\": \"Under Review\",\n    \"notes\": \"Documents submitted for verification\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/drivers/{{driver_id}}/kyc",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "{{driver_id}}", "kyc"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Driver Search & Filter",
+      "item": [
+        {
+          "name": "Search by Name",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers?search=john&page=1&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["drivers"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "john"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search by Phone",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers?search=9876543210",
+              "host": ["{{base_url}}"],
+              "path": ["drivers"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "9876543210"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search by License Number",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers?search=MH12345678901",
+              "host": ["{{base_url}}"],
+              "path": ["drivers"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "MH12345678901"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by License Type",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers?licenseType=Transport Vehicle",
+              "host": ["{{base_url}}"],
+              "path": ["drivers"],
+              "query": [
+                {
+                  "key": "licenseType",
+                  "value": "Transport Vehicle"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Complex Filter Query",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers?kycStatus=Approved&isActive=true&isAvailable=true&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["drivers"],
+              "query": [
+                {
+                  "key": "kycStatus",
+                  "value": "Approved"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                },
+                {
+                  "key": "isAvailable",
+                  "value": "true"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Driver Analytics",
+      "item": [
+        {
+          "name": "Driver Performance Monthly",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers/{{driver_id}}/performance?startDate=2024-11-01&endDate=2024-11-30",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "{{driver_id}}", "performance"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-11-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-11-30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Driver Performance Yearly",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers/{{driver_id}}/performance?startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "{{driver_id}}", "performance"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Driver Performance All Time",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers/{{driver_id}}/performance",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "{{driver_id}}", "performance"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Location Services",
+      "item": [
+        {
+          "name": "Drivers Near Mumbai Airport",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers/available/nearby?latitude=19.0896&longitude=72.8656&radius=5",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "available", "nearby"],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "19.0896"
+                },
+                {
+                  "key": "longitude",
+                  "value": "72.8656"
+                },
+                {
+                  "key": "radius",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Drivers Near Delhi Railway Station",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/drivers/available/nearby?latitude=28.6431&longitude=77.2197&radius=10",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "available", "nearby"],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "28.6431"
+                },
+                {
+                  "key": "longitude",
+                  "value": "77.2197"
+                },
+                {
+                  "key": "radius",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Driver Location - Gateway of India",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"latitude\": 18.9220,\n    \"longitude\": 72.8347,\n    \"address\": \"Gateway of India, Apollo Bandar, Colaba, Mumbai\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/drivers/{{driver_id}}/location",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "{{driver_id}}", "location"]
+            }
+          }
+        },
+        {
+          "name": "Update Driver Location - India Gate",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"latitude\": 28.6129,\n    \"longitude\": 77.2295,\n    \"address\": \"India Gate, Rajpath, New Delhi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/drivers/{{driver_id}}/location",
+              "host": ["{{base_url}}"],
+              "path": ["drivers", "{{driver_id}}", "location"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api/admin",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "driver_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

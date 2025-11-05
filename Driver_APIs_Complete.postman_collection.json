@@ -1,0 +1,1096 @@
+{
+  "info": {
+    "name": "Tour Travels - Complete Driver APIs",
+    "description": "Comprehensive collection of all driver-side APIs including Google Maps integration for distance, routing, and location services",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "3.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{driver_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api/driver",
+      "type": "string"
+    },
+    {
+      "key": "driver_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "driver_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "order_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Driver Authentication",
+      "item": [
+        {
+          "name": "Driver Signup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('driver_token', response.token);",
+                  "    pm.collectionVariables.set('driver_id', response.driver.id);",
+                  "    pm.test('Driver registered successfully', function () {",
+                  "        pm.expect(response.token).to.exist;",
+                  "        pm.expect(response.driver).to.exist;",
+                  "    });",
+                  "} else {",
+                  "    pm.test('Registration failed', function () {",
+                  "        pm.expect(responseCode.code).to.not.equal(201);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Rajesh Kumar Singh\",\n    \"email\": \"rajesh.driver@example.com\",\n    \"phone\": \"+919876543210\",\n    \"alternatePhone\": \"+919876543211\",\n    \"password\": \"driver123\",\n    \"address\": {\n        \"street\": \"123 Driver Colony\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharashtra\",\n        \"pincode\": \"400001\",\n        \"country\": \"India\"\n    },\n    \"dateOfBirth\": \"1985-05-15\",\n    \"licenseNumber\": \"MH02DL987654321\",\n    \"licenseExpiry\": \"2028-05-15\",\n    \"licenseType\": \"Light Motor Vehicle\",\n    \"experience\": 10,\n    \"emergencyContact\": {\n        \"name\": \"Sunita Singh\",\n        \"phone\": \"+919876543212\",\n        \"relation\": \"Wife\"\n    },\n    \"languages\": [\"English\", \"Hindi\", \"Marathi\"],\n    \"specializations\": [\"City Tours\", \"Airport Transfer\", \"Outstation\"],\n    \"vehicleDetails\": {\n        \"make\": \"Maruti Suzuki\",\n        \"model\": \"Swift Dzire\",\n        \"year\": 2022,\n        \"color\": \"White\",\n        \"plateNumber\": \"MH02AB9876\",\n        \"fuelType\": \"Petrol\",\n        \"capacity\": 4,\n        \"features\": [\"AC\", \"GPS\", \"Music System\"]\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/signup",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "signup"]
+            },
+            "description": "Register a new driver with complete profile information"
+          }
+        },
+        {
+          "name": "Driver Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('driver_token', response.token);",
+                  "    pm.collectionVariables.set('driver_id', response.driver.id);",
+                  "    pm.test('Login successful', function () {",
+                  "        pm.expect(response.token).to.exist;",
+                  "        pm.expect(response.driver.email).to.equal('rajesh.driver@example.com');",
+                  "    });",
+                  "} else {",
+                  "    pm.test('Login failed', function () {",
+                  "        pm.expect(responseCode.code).to.not.equal(200);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"rajesh.driver@example.com\",\n    \"password\": \"driver123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login driver and get authentication token"
+          }
+        },
+        {
+          "name": "Get Driver Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Get current driver profile information"
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"rajesh.driver@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/forgot-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "forgot-password"]
+            },
+            "description": "Request password reset for driver"
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"resetToken\": \"reset_token_here\",\n    \"newPassword\": \"newPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "reset-password"]
+            },
+            "description": "Reset driver password using reset token"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Logout driver and invalidate token"
+          }
+        }
+      ],
+      "description": "Complete driver authentication system"
+    },
+    {
+      "name": "📊 Driver Dashboard",
+      "item": [
+        {
+          "name": "Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dashboard/overview",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "overview"]
+            },
+            "description": "Get complete dashboard overview with today's stats, earnings, and performance metrics"
+          }
+        },
+        {
+          "name": "Today's Rides",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dashboard/today-rides",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "today-rides"]
+            },
+            "description": "Get list of today's completed and ongoing rides"
+          }
+        },
+        {
+          "name": "Weekly Performance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dashboard/weekly-performance",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "weekly-performance"]
+            },
+            "description": "Get weekly performance analytics including trips, earnings, and ratings"
+          }
+        },
+        {
+          "name": "Monthly Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dashboard/monthly-analytics",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "monthly-analytics"]
+            },
+            "description": "Get detailed monthly analytics and performance trends"
+          }
+        }
+      ],
+      "description": "Driver dashboard and analytics endpoints"
+    },
+    {
+      "name": "🚗 Trip Management",
+      "item": [
+        {
+          "name": "Get Available Orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.orders && response.orders.length > 0) {",
+                  "        pm.collectionVariables.set('order_id', response.orders[0]._id);",
+                  "    }",
+                  "    pm.test('Orders retrieved successfully', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.orders).to.be.an('array');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/trips/orders?status=pending&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get available orders for driver to accept"
+          }
+        },
+        {
+          "name": "Accept Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"estimatedArrival\": 8,\n    \"currentLocation\": {\n        \"latitude\": 19.0760,\n        \"longitude\": 72.8777,\n        \"address\": \"Mumbai Central Station\"\n    },\n    \"message\": \"On my way to pickup location\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/orders/{{order_id}}/accept",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders", "{{order_id}}", "accept"]
+            },
+            "description": "Accept an available order with estimated arrival time"
+          }
+        },
+        {
+          "name": "Reject Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reason\": \"Too far from current location\",\n    \"currentLocation\": {\n        \"latitude\": 19.0760,\n        \"longitude\": 72.8777\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/orders/{{order_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders", "{{order_id}}", "reject"]
+            },
+            "description": "Reject an order with reason"
+          }
+        },
+        {
+          "name": "Start Trip",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startLocation\": {\n        \"coordinates\": [72.8777, 19.0760],\n        \"address\": \"Mumbai Central Railway Station\"\n    },\n    \"odometerReading\": 12500,\n    \"customerVerificationCode\": \"1234\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/orders/{{order_id}}/start",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders", "{{order_id}}", "start"]
+            },
+            "description": "Start the trip after customer pickup"
+          }
+        },
+        {
+          "name": "Update Location During Trip",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"latitude\": 19.0685,\n    \"longitude\": 72.8714,\n    \"heading\": 45,\n    \"speed\": 35,\n    \"accuracy\": 5,\n    \"timestamp\": \"{{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/orders/{{order_id}}/location",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders", "{{order_id}}", "location"]
+            },
+            "description": "Update driver location during trip for real-time tracking"
+          }
+        },
+        {
+          "name": "Get Navigation Details (Google Maps)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/trips/orders/{{order_id}}/navigation",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders", "{{order_id}}", "navigation"]
+            },
+            "description": "Get enhanced navigation with Google Maps routing, traffic data, and turn-by-turn directions"
+          }
+        },
+        {
+          "name": "Complete Trip",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"endLocation\": {\n        \"coordinates\": [72.8258, 18.9750],\n        \"address\": \"Bandra West, Mumbai\"\n    },\n    \"odometerReading\": 12535,\n    \"tripSummary\": {\n        \"rating\": 5,\n        \"feedback\": \"Excellent trip, customer was very friendly\",\n        \"issues\": []\n    },\n    \"additionalCharges\": {\n        \"tolls\": 50,\n        \"parking\": 20,\n        \"waiting\": 0\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/orders/{{order_id}}/complete",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "orders", "{{order_id}}", "complete"]
+            },
+            "description": "Complete trip with automatic Google Maps distance calculation"
+          }
+        },
+        {
+          "name": "Get Trip History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/trips/history?page=1&limit=10&status=completed&startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "completed"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31"
+                }
+              ]
+            },
+            "description": "Get driver's trip history with filters"
+          }
+        }
+      ],
+      "description": "Complete trip management system"
+    },
+    {
+      "name": "🗺️ Google Maps Integration",
+      "item": [
+        {
+          "name": "Calculate Fare (Google Maps)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"pickup\": {\n        \"latitude\": 19.0760,\n        \"longitude\": 72.8777\n    },\n    \"dropoff\": {\n        \"latitude\": 18.9750,\n        \"longitude\": 72.8258\n    },\n    \"vehicleType\": \"standard\",\n    \"options\": {\n        \"baseRate\": 50,\n        \"perKmRate\": 15,\n        \"perMinuteRate\": 2,\n        \"surgeMultiplier\": 1.2,\n        \"minimumFare\": 100\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/calculate-fare",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "calculate-fare"]
+            },
+            "description": "Calculate accurate fare using Google Maps distance and duration with traffic data"
+          }
+        },
+        {
+          "name": "Geocode Address",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"address\": \"Gateway of India, Mumbai, Maharashtra, India\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/geocode",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "geocode"]
+            },
+            "description": "Convert address to coordinates using Google Maps Geocoding"
+          }
+        },
+        {
+          "name": "Reverse Geocode",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"latitude\": 18.9220,\n    \"longitude\": 72.8347\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/reverse-geocode",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "reverse-geocode"]
+            },
+            "description": "Convert coordinates to address using Google Maps"
+          }
+        },
+        {
+          "name": "Optimize Route (Multiple Stops)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"origin\": {\n        \"latitude\": 19.0760,\n        \"longitude\": 72.8777\n    },\n    \"destination\": {\n        \"latitude\": 18.9750,\n        \"longitude\": 72.8258\n    },\n    \"waypoints\": [\n        {\n            \"latitude\": 19.0596,\n            \"longitude\": 72.8295,\n            \"name\": \"Dadar Station\"\n        },\n        {\n            \"latitude\": 19.0176,\n            \"longitude\": 72.8562,\n            \"name\": \"Worli Sea Link\"\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/optimize-route",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "optimize-route"]
+            },
+            "description": "Optimize route for multiple stops using Google Maps"
+          }
+        }
+      ],
+      "description": "Google Maps API integration for distance, routing, and location services"
+    },
+    {
+      "name": "👤 Driver Profile Management",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/profile",
+              "host": ["{{base_url}}"],
+              "path": ["profile"]
+            },
+            "description": "Get complete driver profile information"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"phone\": \"+919876543210\",\n    \"alternatePhone\": \"+919876543213\",\n    \"address\": {\n        \"street\": \"456 Updated Driver Colony\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharashtra\",\n        \"pincode\": \"400002\"\n    },\n    \"languages\": [\"English\", \"Hindi\", \"Marathi\", \"Gujarati\"],\n    \"specializations\": [\"City Tours\", \"Airport Transfer\", \"Outstation\", \"Corporate Travel\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile",
+              "host": ["{{base_url}}"],
+              "path": ["profile"]
+            },
+            "description": "Update driver profile information"
+          }
+        },
+        {
+          "name": "Toggle Availability",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"isAvailable\": true,\n    \"reason\": \"Ready to take rides\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/availability",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "availability"]
+            },
+            "description": "Toggle driver availability status"
+          }
+        },
+        {
+          "name": "Update Location (Google Maps Enhanced)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"latitude\": 19.0760,\n    \"longitude\": 72.8777,\n    \"address\": \"Mumbai Central Railway Station\",\n    \"heading\": 45,\n    \"speed\": 0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/location",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "location"]
+            },
+            "description": "Update current location with Google Maps reverse geocoding"
+          }
+        },
+        {
+          "name": "Update Working Hours",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"workingHours\": {\n        \"monday\": { \"start\": \"06:00\", \"end\": \"22:00\", \"isWorking\": true },\n        \"tuesday\": { \"start\": \"06:00\", \"end\": \"22:00\", \"isWorking\": true },\n        \"wednesday\": { \"start\": \"06:00\", \"end\": \"22:00\", \"isWorking\": true },\n        \"thursday\": { \"start\": \"06:00\", \"end\": \"22:00\", \"isWorking\": true },\n        \"friday\": { \"start\": \"06:00\", \"end\": \"22:00\", \"isWorking\": true },\n        \"saturday\": { \"start\": \"08:00\", \"end\": \"20:00\", \"isWorking\": true },\n        \"sunday\": { \"start\": \"08:00\", \"end\": \"18:00\", \"isWorking\": false }\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/working-hours",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "working-hours"]
+            },
+            "description": "Update driver working hours schedule"
+          }
+        },
+        {
+          "name": "Update Preferences",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"preferences\": {\n        \"maxDistance\": 50,\n        \"preferredAreas\": [\"South Mumbai\", \"Central Mumbai\", \"BKC\"],\n        \"avoidAreas\": [\"Heavy Traffic Zones\"],\n        \"notifications\": {\n            \"newOrders\": true,\n            \"earnings\": true,\n            \"promotions\": false,\n            \"maintenance\": true\n        },\n        \"autoAcceptOrders\": false,\n        \"preferredVehicleTypes\": [\"sedan\", \"suv\"]\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/preferences",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "preferences"]
+            },
+            "description": "Update driver preferences and settings"
+          }
+        },
+        {
+          "name": "Upload Documents",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "licenseDocument",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "vehicleRC",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "insurance",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "documentType",
+                  "value": "license",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/documents",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "documents"]
+            },
+            "description": "Upload driver documents for verification"
+          }
+        },
+        {
+          "name": "Get Nearby Drivers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/profile/nearby?latitude=19.0760&longitude=72.8777&radius=5",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "nearby"],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "19.0760"
+                },
+                {
+                  "key": "longitude",
+                  "value": "72.8777"
+                },
+                {
+                  "key": "radius",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Find nearby drivers using Google Maps distance calculation"
+          }
+        }
+      ],
+      "description": "Complete driver profile management system"
+    },
+    {
+      "name": "💰 Earnings & Payments",
+      "item": [
+        {
+          "name": "Today's Earnings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/earnings/today",
+              "host": ["{{base_url}}"],
+              "path": ["earnings", "today"]
+            },
+            "description": "Get today's earnings summary"
+          }
+        },
+        {
+          "name": "Earnings Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/earnings/overview",
+              "host": ["{{base_url}}"],
+              "path": ["earnings", "overview"]
+            },
+            "description": "Get comprehensive earnings overview"
+          }
+        },
+        {
+          "name": "Earnings History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/earnings/history?page=1&limit=20&startDate=2024-01-01&endDate=2024-12-31&type=all",
+              "host": ["{{base_url}}"],
+              "path": ["earnings", "history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31"
+                },
+                {
+                  "key": "type",
+                  "value": "all"
+                }
+              ]
+            },
+            "description": "Get detailed earnings history with filters"
+          }
+        },
+        {
+          "name": "Weekly Earnings Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/earnings/weekly-report",
+              "host": ["{{base_url}}"],
+              "path": ["earnings", "weekly-report"]
+            },
+            "description": "Get weekly earnings breakdown and analytics"
+          }
+        },
+        {
+          "name": "Monthly Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/earnings/monthly-analytics?month=11&year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["earnings", "monthly-analytics"],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "11"
+                },
+                {
+                  "key": "year",
+                  "value": "2024"
+                }
+              ]
+            },
+            "description": "Get detailed monthly earnings analytics"
+          }
+        },
+        {
+          "name": "Request Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"amount\": 5000,\n    \"paymentMethod\": \"bank_transfer\",\n    \"bankDetails\": {\n        \"accountNumber\": \"1234567890\",\n        \"ifscCode\": \"HDFC0001234\",\n        \"accountHolderName\": \"Rajesh Kumar Singh\",\n        \"bankName\": \"HDFC Bank\",\n        \"branchName\": \"Mumbai Central\"\n    },\n    \"note\": \"Weekly withdrawal request\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/earnings/withdraw",
+              "host": ["{{base_url}}"],
+              "path": ["earnings", "withdraw"]
+            },
+            "description": "Request earnings withdrawal"
+          }
+        },
+        {
+          "name": "Withdrawal History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/earnings/withdrawals?page=1&limit=10&status=all",
+              "host": ["{{base_url}}"],
+              "path": ["earnings", "withdrawals"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "all"
+                }
+              ]
+            },
+            "description": "Get withdrawal request history"
+          }
+        },
+        {
+          "name": "Add Payment Method",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"bank_account\",\n    \"details\": {\n        \"accountNumber\": \"9876543210\",\n        \"ifscCode\": \"ICIC0001234\",\n        \"accountHolderName\": \"Rajesh Kumar Singh\",\n        \"bankName\": \"ICICI Bank\",\n        \"branchName\": \"Bandra West\"\n    },\n    \"isPrimary\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/earnings/payment-methods",
+              "host": ["{{base_url}}"],
+              "path": ["earnings", "payment-methods"]
+            },
+            "description": "Add new payment method"
+          }
+        },
+        {
+          "name": "Get Payment Methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/earnings/payment-methods",
+              "host": ["{{base_url}}"],
+              "path": ["earnings", "payment-methods"]
+            },
+            "description": "Get all saved payment methods"
+          }
+        }
+      ],
+      "description": "Complete earnings and payment management system"
+    },
+    {
+      "name": "🎧 Support & Communication",
+      "item": [
+        {
+          "name": "Create Support Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"subject\": \"Payment Issue\",\n    \"category\": \"payments\",\n    \"priority\": \"high\",\n    \"description\": \"I have not received payment for my last 3 trips completed yesterday. Please help resolve this issue.\",\n    \"attachments\": [],\n    \"relatedOrderId\": \"{{order_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/support/tickets",
+              "host": ["{{base_url}}"],
+              "path": ["support", "tickets"]
+            },
+            "description": "Create new support ticket"
+          }
+        },
+        {
+          "name": "Get Support Tickets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/support/tickets?status=open&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["support", "tickets"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get support tickets list"
+          }
+        },
+        {
+          "name": "Emergency Assistance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"accident\",\n    \"description\": \"Minor accident occurred, need immediate assistance\",\n    \"location\": {\n        \"latitude\": 19.0760,\n        \"longitude\": 72.8777,\n        \"address\": \"Mumbai Central\"\n    },\n    \"severity\": \"medium\",\n    \"contactNumber\": \"+919876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/support/emergency",
+              "host": ["{{base_url}}"],
+              "path": ["support", "emergency"]
+            },
+            "description": "Request emergency assistance"
+          }
+        },
+        {
+          "name": "Send Message to Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"orderId\": \"{{order_id}}\",\n    \"message\": \"I am on my way to pickup location. Will reach in 5 minutes.\",\n    \"type\": \"text\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/support/message-customer",
+              "host": ["{{base_url}}"],
+              "path": ["support", "message-customer"]
+            },
+            "description": "Send message to customer"
+          }
+        },
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/support/notifications?page=1&limit=20&unreadOnly=false",
+              "host": ["{{base_url}}"],
+              "path": ["support", "notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "unreadOnly",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Get driver notifications"
+          }
+        },
+        {
+          "name": "Mark Notifications Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"notificationIds\": [\"notification_id_1\", \"notification_id_2\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/support/notifications/mark-read",
+              "host": ["{{base_url}}"],
+              "path": ["support", "notifications", "mark-read"]
+            },
+            "description": "Mark notifications as read"
+          }
+        }
+      ],
+      "description": "Support and communication system"
+    }
+  ]
+}

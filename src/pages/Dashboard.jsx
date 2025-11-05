@@ -170,24 +170,26 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       {/* Header Section */}
-      <div className="">
+      <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent">
+              Dashboard
+            </h1>
+            <p className="text-slate-600 mt-2 text-lg">
               Welcome back! Here's what's happening today.
             </p>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 bg-white rounded-lg px-3 py-2 border border-gray-200 shadow-sm">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-gray-700">
+            <div className="flex items-center space-x-2 bg-white/70 backdrop-blur-sm rounded-2xl px-4 py-2 border border-white/20 shadow-lg">
+              <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-slate-700">
                 Live Updates
               </span>
             </div>
-            <div className="text-sm text-gray-500 bg-white rounded-lg px-3 py-2 border border-gray-200">
+            <div className="text-sm text-slate-500 bg-white/50 backdrop-blur-sm rounded-xl px-3 py-2">
               {new Date().toLocaleDateString("en-IN", {
                 weekday: "long",
                 year: "numeric",
@@ -200,33 +202,33 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {statsCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div
               key={index}
-              className="group bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-out cursor-pointer focus:outline-none"
+              className="group bg-white/80 backdrop-blur-lg rounded-3xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 hover:bg-white/90"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div
-                    className={`w-12 h-12 rounded-lg bg-gradient-to-r ${stat.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200`}
+                    className={`w-14 h-14 rounded-2xl bg-gradient-to-r ${stat.gradient} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}
                   >
-                    <Icon className="h-6 w-6 text-white" />
+                    <Icon className="h-7 w-7 text-white" />
                   </div>
-                  <h3 className="text-gray-600 text-sm font-medium mb-1">
+                  <h3 className="text-slate-600 text-sm font-medium mb-1">
                     {stat.name}
                   </h3>
-                  <p className="text-2xl font-bold text-gray-900 mb-2">
+                  <p className="text-3xl font-bold text-slate-900 mb-2">
                     {stat.value}
                   </p>
                   <div className="flex items-center space-x-2">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
                       <ArrowUpRight className="h-3 w-3 mr-1" />
                       {stat.change}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-slate-500">
                       {stat.description}
                     </span>
                   </div>
@@ -238,24 +240,24 @@ const Dashboard = () => {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         {/* Recent Trips */}
-        <div className="lg:col-span-2 bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 ease-out focus:outline-none">
+        <div className="lg:col-span-2 bg-white/80 backdrop-blur-lg rounded-3xl p-8 border border-white/20 shadow-xl">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Recent Trips</h2>
+            <h2 className="text-2xl font-bold text-slate-900">Recent Trips</h2>
             <button className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center space-x-1 hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors">
               <span>View All</span>
               <ArrowUpRight className="h-4 w-4" />
             </button>
           </div>
           <div className="space-y-4">
-            {recentTrips.map((trip) => (
+            {recentTrips.map((trip, index) => (
               <div
                 key={trip.id}
-                className="group flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100 hover:bg-white hover:shadow-md transform hover:scale-[1.02] transition-all duration-200 ease-out cursor-pointer focus:outline-none"
+                className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50/50 to-white/50 rounded-2xl border border-slate-200/50 hover:bg-white/80 transition-all duration-200 hover:shadow-md"
               >
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center">
                     <Car className="h-6 w-6 text-white" />
                   </div>
                   <div>
@@ -306,20 +308,20 @@ const Dashboard = () => {
         </div>
 
         {/* Top Drivers */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 ease-out">
+        <div className="bg-white/80 backdrop-blur-lg rounded-3xl p-8 border border-white/20 shadow-xl">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Top Drivers</h2>
+            <h2 className="text-2xl font-bold text-slate-900">Top Drivers</h2>
             <Award className="h-6 w-6 text-amber-500" />
           </div>
           <div className="space-y-4">
-            {topDrivers.map((driver) => (
+            {topDrivers.map((driver, index) => (
               <div
                 key={driver.name}
-                className="group flex items-center justify-between p-4 bg-gradient-to-r from-slate-50/50 to-white/50 rounded-2xl border border-slate-200/50 hover:bg-white hover:shadow-md transform hover:scale-[1.02] transition-all duration-200 ease-out cursor-pointer focus:outline-none"
+                className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50/50 to-white/50 rounded-2xl border border-slate-200/50 hover:bg-white/80 transition-all duration-200"
               >
                 <div className="flex items-center space-x-3">
                   <div className="relative">
-                    <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
                       <span className="text-white font-semibold text-sm">
                         {driver.avatar}
                       </span>
@@ -359,30 +361,30 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Actions & Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Quick Actions */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 ease-out">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">
+        <div className="bg-white/80 backdrop-blur-lg rounded-3xl p-8 border border-white/20 shadow-xl">
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">
             Quick Actions
           </h2>
           <div className="grid grid-cols-2 gap-4">
-            <button className="group bg-gradient-to-r from-blue-500 to-cyan-400 text-white p-6 rounded-2xl hover:shadow-xl transform hover:scale-110 transition-all duration-300 ease-out active:scale-95 focus:outline-none">
-              <Calendar className="h-8 w-8 mb-3 group-hover:scale-125 group-hover:rotate-3 transition-all duration-300" />
+            <button className="group bg-gradient-to-r from-blue-500 to-cyan-400 text-white p-6 rounded-2xl hover:shadow-lg transform hover:scale-105 transition-all duration-200">
+              <Calendar className="h-8 w-8 mb-3 group-hover:scale-110 transition-transform" />
               <h3 className="font-semibold mb-1">New Booking</h3>
               <p className="text-xs opacity-90">Create manual booking</p>
             </button>
-            <button className="group bg-gradient-to-r from-emerald-500 to-green-400 text-white p-6 rounded-2xl hover:shadow-xl transform hover:scale-110 transition-all duration-300 ease-out active:scale-95 focus:outline-none">
-              <Users className="h-8 w-8 mb-3 group-hover:scale-125 group-hover:rotate-3 transition-all duration-300" />
+            <button className="group bg-gradient-to-r from-emerald-500 to-green-400 text-white p-6 rounded-2xl hover:shadow-lg transform hover:scale-105 transition-all duration-200">
+              <Users className="h-8 w-8 mb-3 group-hover:scale-110 transition-transform" />
               <h3 className="font-semibold mb-1">Add Driver</h3>
               <p className="text-xs opacity-90">Register new driver</p>
             </button>
-            <button className="group bg-gradient-to-r from-purple-500 to-pink-400 text-white p-6 rounded-2xl hover:shadow-xl transform hover:scale-110 transition-all duration-300 ease-out active:scale-95 focus:outline-none">
-              <Car className="h-8 w-8 mb-3 group-hover:scale-125 group-hover:rotate-3 transition-all duration-300" />
+            <button className="group bg-gradient-to-r from-purple-500 to-pink-400 text-white p-6 rounded-2xl hover:shadow-lg transform hover:scale-105 transition-all duration-200">
+              <Car className="h-8 w-8 mb-3 group-hover:scale-110 transition-transform" />
               <h3 className="font-semibold mb-1">Add Vehicle</h3>
               <p className="text-xs opacity-90">Register new vehicle</p>
             </button>
-            <button className="group bg-gradient-to-r from-orange-500 to-red-400 text-white p-6 rounded-2xl hover:shadow-xl transform hover:scale-110 transition-all duration-300 ease-out active:scale-95 focus:outline-none">
-              <Activity className="h-8 w-8 mb-3 group-hover:scale-125 group-hover:rotate-3 transition-all duration-300" />
+            <button className="group bg-gradient-to-r from-orange-500 to-red-400 text-white p-6 rounded-2xl hover:shadow-lg transform hover:scale-105 transition-all duration-200">
+              <Activity className="h-8 w-8 mb-3 group-hover:scale-110 transition-transform" />
               <h3 className="font-semibold mb-1">Reports</h3>
               <p className="text-xs opacity-90">Generate analytics</p>
             </button>
@@ -390,14 +392,14 @@ const Dashboard = () => {
         </div>
 
         {/* Performance Metrics */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 ease-out">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">
+        <div className="bg-white/80 backdrop-blur-lg rounded-3xl p-8 border border-white/20 shadow-xl">
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">
             Performance Metrics
           </h2>
           <div className="space-y-6">
-            <div className="group flex items-center justify-between hover:bg-gray-50 rounded-lg p-3 -m-3 transition-all duration-200 cursor-pointer">
+            <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center">
                   <Zap className="h-5 w-5 text-white" />
                 </div>
                 <div>
@@ -415,9 +417,9 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="group flex items-center justify-between hover:bg-gray-50 rounded-lg p-3 -m-3 transition-all duration-200 cursor-pointer">
+            <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-400 rounded-xl flex items-center justify-center">
                   <Heart className="h-5 w-5 text-white" />
                 </div>
                 <div>
@@ -435,9 +437,9 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="group flex items-center justify-between hover:bg-gray-50 rounded-lg p-3 -m-3 transition-all duration-200 cursor-pointer">
+            <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-400 rounded-xl flex items-center justify-center">
                   <Globe className="h-5 w-5 text-white" />
                 </div>
                 <div>

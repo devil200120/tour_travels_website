@@ -1,83 +1,180 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+
+const AddressSchema = new mongoose.Schema({
+  label: { type: String, required: true }, // Home, Office, etc.
+  address: { type: String, required: true },
+  landmark: String,
+  latitude: Number,
+  longitude: Number,
+  isDefault: { type: Boolean, default: false }
+});
+
+const PaymentPreferenceSchema = new mongoose.Schema({
+  preferredMethod: { 
+    type: String, 
+    enum: ['UPI', 'Card', 'Wallet', 'NetBanking'], 
+    default: 'UPI' 
+  },
+  savedCards: [{
+    cardId: String,
+    lastFour: String,
+    cardType: String,
+    isDefault: Boolean
+  }],
+  walletBalance: { type: Number, default: 0 },
+  loyaltyPoints: { type: Number, default: 0 }
+});
 
 const customerSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  email: {
-    type: String,
-    required: true,
+  // Basic Information
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  email: { 
+    type: String, 
+    required: true, 
     unique: true,
-    lowercase: true
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
   },
-  phone: {
-    type: String,
-    required: true
+  phone: { 
+    type: String, 
+    required: true, 
+    unique: true,
+    match: [/^[\+]?[1-9][\d]{0,15}$/, 'Please enter a valid phone number']
   },
-  alternatePhone: {
-    type: String
-  },
-  address: {
-    street: String,
-    city: String,
-    state: String,
-    pincode: String,
-    country: { type: String, default: 'India' }
-  },
-  dateOfBirth: {
-    type: Date
-  },
-  gender: {
-    type: String,
-    enum: ['Male', 'Female', 'Other']
-  },
-  isVerified: {
-    type: Boolean,
-    default: false
-  },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  profileImage: {
-    type: String
-  },
+  password: { type: String, required: true },
+  
+  // Verification Status
+  isPhoneVerified: { type: Boolean, default: false },
+  isEmailVerified: { type: Boolean, default: false },
+  phoneOTP: String,
+  emailOTP: String,
+  otpExpiry: Date,
+  
+  // Profile Details
+  dateOfBirth: Date,
+  gender: { type: String, enum: ['Male', 'Female', 'Other'] },
+  profileImage: String,
   emergencyContact: {
     name: String,
     phone: String,
-    relation: String
+    relationship: String
   },
+  
+  // Addresses
+  addresses: [AddressSchema],
+  
+  // Payment Preferences
+  paymentPreferences: PaymentPreferenceSchema,
+  
+  // App Preferences
   preferences: {
-    preferredVehicleType: [String],
-    languages: [String],
-    paymentMethods: [String]
+    language: { type: String, default: 'en' },
+    currency: { type: String, default: 'INR' },
+    notifications: {
+      push: { type: Boolean, default: true },
+      sms: { type: Boolean, default: true },
+      email: { type: Boolean, default: true }
+    },
+    theme: { type: String, enum: ['light', 'dark'], default: 'light' }
   },
-  loyaltyPoints: {
-    type: Number,
-    default: 0
+  
+  // Social Login
+  googleId: String,
+  appleId: String,
+  facebookId: String,
+  
+  // Account Status
+  status: { 
+    type: String, 
+    enum: ['active', 'inactive', 'suspended', 'blocked'], 
+    default: 'active' 
   },
-  totalBookings: {
-    type: Number,
-    default: 0
+  
+  // Ratings & Reviews
+  averageRating: { type: Number, default: 0 },
+  totalRides: { type: Number, default: 0 },
+  
+  // Referral System
+  referralCode: { type: String, unique: true },
+  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
+  referralEarnings: { type: Number, default: 0 },
+  
+  // Device Information
+  deviceInfo: {
+    deviceId: String,
+    deviceType: { type: String, enum: ['ios', 'android'] },
+    fcmToken: String,
+    appVersion: String
   },
-  totalSpent: {
-    type: Number,
-    default: 0
-  },
-  lastBookingDate: {
-    type: Date
-  },
+  
+  // Security
+  lastLogin: Date,
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: Date,
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
+  
+  // Legacy fields for compatibility
+  name: { type: String }, // Computed from firstName + lastName
+  isVerified: { type: Boolean, default: false },
+  isActive: { type: Boolean, default: true },
+  loyaltyPoints: { type: Number, default: 0 },
+  totalBookings: { type: Number, default: 0 },
+  totalSpent: { type: Number, default: 0 },
+  lastBookingDate: Date,
   registrationSource: {
     type: String,
     enum: ['Web', 'Mobile App', 'Admin Portal'],
-    default: 'Web'
+    default: 'Mobile App'
   }
 }, {
   timestamps: true
 });
 
-customerSchema.index({ email: 1, phone: 1 });
+// Indexes (only for fields without unique: true)
+customerSchema.index({ 'deviceInfo.fcmToken': 1 });
+
+// Virtual for full name
+customerSchema.virtual('fullName').get(function() {
+  return `${this.firstName} ${this.lastName}`;
+});
+
+// Pre-save middleware to hash password
+customerSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  
+  try {
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Generate referral code and name field before saving
+customerSchema.pre('save', function(next) {
+  if (!this.referralCode) {
+    this.referralCode = `REF${this.phone.slice(-4)}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+  }
+  
+  // Update legacy name field
+  if (this.firstName && this.lastName) {
+    this.name = `${this.firstName} ${this.lastName}`;
+  }
+  
+  next();
+});
+
+// Method to compare password
+customerSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Method to check if account is locked
+customerSchema.methods.isLocked = function() {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+};
 
 export default mongoose.model('Customer', customerSchema);
