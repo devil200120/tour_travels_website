@@ -111,6 +111,19 @@ const driverSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  registrationDate: {
+    type: Date,
+    default: Date.now
+  },
+  approvalDate: {
+    type: Date
+  },
+  lastLoginDate: {
+    type: Date
+  },
+  lastSeenDate: {
+    type: Date
+  },
   languages: [String],
   specializations: [{
     type: String,
@@ -135,6 +148,45 @@ const driverSchema = new mongoose.Schema({
     deviceType: String, // "android", "ios"
     appVersion: String,
     lastSeen: Date
+  },
+  // OTP fields for authentication
+  loginOtp: {
+    type: String,
+    select: false // Don't include OTP in queries by default for security
+  },
+  loginOtpExpires: {
+    type: Date,
+    select: false // Don't include OTP expiry in queries by default for security
+  },
+  loginOtpAttempts: {
+    type: Number,
+    default: 0,
+    select: false // Don't include OTP attempts in queries by default for security
+  },
+  // Password reset fields
+  resetPasswordOtp: {
+    type: String,
+    select: false // Don't include reset OTP in queries by default for security
+  },
+  resetPasswordOtpExpires: {
+    type: Date,
+    select: false // Don't include reset OTP expiry in queries by default for security
+  },
+  resetPasswordOtpAttempts: {
+    type: Number,
+    default: 0,
+    select: false // Don't include reset OTP attempts in queries by default for security
+  },
+  passwordResetToken: {
+    type: String,
+    select: false // Don't include reset token in queries by default for security
+  },
+  passwordResetTokenExpires: {
+    type: Date,
+    select: false // Don't include reset token expiry in queries by default for security
+  },
+  lastPasswordResetDate: {
+    type: Date
   },
   preferences: {
     maxRadius: { type: Number, default: 10 }, // km

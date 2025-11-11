@@ -20,8 +20,11 @@ router.get('/overview', async (req, res) => {
         
         // Today's trips
         const todayTrips = await Booking.find({
-            driverId: driverId,
-            createdAt: { $gte: startOfDay, $lt: endOfDay }
+            assignedDriver: driverId,
+            $or: [
+                { createdAt: { $gte: startOfDay, $lt: endOfDay } },
+                { endTime: { $gte: startOfDay, $lt: endOfDay } }
+            ]
         });
 
         // Calculate today's stats
@@ -52,7 +55,7 @@ router.get('/overview', async (req, res) => {
         startOfWeek.setHours(0, 0, 0, 0);
 
         const weekTrips = await Booking.find({
-            driverId: driverId,
+            assignedDriver: driverId,
             createdAt: { $gte: startOfWeek, $lt: endOfDay }
         });
 
@@ -63,7 +66,7 @@ router.get('/overview', async (req, res) => {
         // This month's stats
         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         const monthTrips = await Booking.find({
-            driverId: driverId,
+            assignedDriver: driverId,
             createdAt: { $gte: startOfMonth, $lt: endOfDay }
         });
 
@@ -128,43 +131,63 @@ router.get('/today-rides', async (req, res) => {
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
+        console.log('🔍 Debug Today\'s Rides:');
+        console.log('Driver ID:', driverId);
+        console.log('Start of day:', startOfDay);
+        console.log('End of day:', endOfDay);
+
+        // Query using assignedDriver field and check both creation date and completion date
         const todayRides = await Booking.find({
-            driverId: driverId,
-            createdAt: { $gte: startOfDay, $lt: endOfDay }
+            $and: [
+                { assignedDriver: driverId },
+                {
+                    $or: [
+                        { createdAt: { $gte: startOfDay, $lt: endOfDay } },
+                        { endTime: { $gte: startOfDay, $lt: endOfDay } }
+                    ]
+                }
+            ]
         })
-        .populate('customerId', 'name phone email')
-        .populate('packageId', 'name duration')
+        .populate('customer', 'firstName lastName phone email')
+        .populate('packageDetails.packageId', 'name duration')
         .sort({ createdAt: -1 });
+
+        console.log('Rides found:', todayRides.length);
 
         const ridesWithDetails = todayRides.map(ride => ({
             id: ride._id,
             bookingId: ride.bookingId,
             customer: {
-                name: ride.customerId?.name || 'N/A',
-                phone: ride.customerId?.phone || 'N/A'
+                name: ride.customer ? `${ride.customer.firstName || ''} ${ride.customer.lastName || ''}`.trim() : 'N/A',
+                phone: ride.customer?.phone || 'N/A',
+                email: ride.customer?.email || 'N/A'
             },
             package: {
-                name: ride.packageId?.name || 'Custom Trip',
-                duration: ride.packageId?.duration || 'N/A'
+                name: ride.packageDetails?.name || ride.packageId?.name || 'Custom Trip',
+                duration: ride.packageDetails?.duration || ride.packageId?.duration || 'N/A'
             },
             pickup: {
-                address: ride.pickupLocation?.address || 'N/A',
-                coordinates: ride.pickupLocation?.coordinates || null,
-                time: ride.pickupTime
+                address: ride.pickup?.address || ride.pickupLocation?.address || 'N/A',
+                coordinates: ride.pickup?.coordinates || ride.pickupLocation?.coordinates || null,
+                time: ride.pickupTime || ride.schedule?.startDate
             },
             dropoff: {
-                address: ride.dropoffLocation?.address || 'N/A',
-                coordinates: ride.dropoffLocation?.coordinates || null,
+                address: ride.dropoff?.address || ride.dropoffLocation?.address || 'N/A',
+                coordinates: ride.dropoff?.coordinates || ride.dropoffLocation?.coordinates || null,
                 time: ride.dropoffTime
             },
             status: ride.status,
-            totalAmount: ride.totalAmount || 0,
-            distance: ride.distance || 0,
+            totalAmount: ride.totalAmount || ride.pricing?.totalAmount || 0,
+            distance: ride.actualDistance || ride.distance || 0,
             duration: ride.duration || 0,
-            rating: ride.rating || null,
+            rating: ride.customerRating || ride.rating || null,
             createdAt: ride.createdAt,
             startTime: ride.startTime,
-            endTime: ride.endTime
+            endTime: ride.endTime,
+            assignedAt: ride.acceptedAt || ride.updatedAt,
+            vehiclePreference: ride.vehiclePreference,
+            tripType: ride.tripType || 'one-way',
+            passengers: ride.passengers || 1
         }));
 
         res.json({
@@ -175,7 +198,14 @@ router.get('/today-rides', async (req, res) => {
                 completed: todayRides.filter(r => r.status === 'Completed').length,
                 pending: todayRides.filter(r => r.status === 'Pending').length,
                 confirmed: todayRides.filter(r => r.status === 'Confirmed').length,
+                inProgress: todayRides.filter(r => r.status === 'In Progress').length,
                 cancelled: todayRides.filter(r => r.status === 'Cancelled').length
+            },
+            debug: {
+                query: {
+                    assignedDriver: driverId,
+                    dateRange: { startOfDay, endOfDay }
+                }
             }
         });
 
@@ -198,7 +228,7 @@ router.get('/today-earnings', async (req, res) => {
         const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
         const todayRides = await Booking.find({
-            driverId: driverId,
+            assignedDriver: driverId,
             createdAt: { $gte: startOfDay, $lt: endOfDay }
         });
 
@@ -260,7 +290,7 @@ router.get('/stats-summary', async (req, res) => {
         const driver = await Driver.findById(driverId);
 
         // Get all time stats
-        const allTrips = await Booking.find({ driverId: driverId });
+        const allTrips = await Booking.find({ assignedDriver: driverId });
         const completedTrips = allTrips.filter(trip => trip.status === 'Completed');
 
         // Calculate total earnings
@@ -337,7 +367,7 @@ router.get('/weekly-performance', async (req, res) => {
         
         // Get current week trips
         const currentWeekTrips = await Booking.find({
-            driverId: driverId,
+            assignedDriver: driverId,
             status: 'Completed',
             completedAt: {
                 $gte: currentWeekStart,
@@ -347,7 +377,7 @@ router.get('/weekly-performance', async (req, res) => {
         
         // Get previous week trips
         const previousWeekTrips = await Booking.find({
-            driverId: driverId,
+            assignedDriver: driverId,
             status: 'Completed',
             completedAt: {
                 $gte: previousWeekStart,
@@ -480,7 +510,7 @@ router.get('/monthly-analytics', async (req, res) => {
         
         // Get completed trips for the month
         const monthlyTrips = await Booking.find({
-            driverId: driverId,
+            assignedDriver: driverId,
             status: 'Completed',
             completedAt: {
                 $gte: startOfMonth,
@@ -541,7 +571,7 @@ router.get('/monthly-analytics', async (req, res) => {
         const prevMonthEnd = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
         
         const previousMonthTrips = await Booking.find({
-            driverId: driverId,
+            assignedDriver: driverId,
             status: 'Completed',
             completedAt: {
                 $gte: prevMonthStart,

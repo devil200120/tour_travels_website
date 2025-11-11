@@ -14,6 +14,7 @@ import {
   X,
   LogOut,
   Bell,
+  Home,
 } from "lucide-react";
 
 const Layout = ({ children }) => {
@@ -76,8 +77,9 @@ const Layout = ({ children }) => {
 
         <nav className="mt-8">
           <div className="px-6">
-            {navigation.map((item) => {
-              const Icon = item.icon;
+              {navigation.map((item) => {
+              // Ensure Icon is defined; fall back to Home icon to avoid "Element type is invalid" runtime error
+              const Icon = item.icon || Home;
               const isActive = location.pathname === item.href;
 
               return (

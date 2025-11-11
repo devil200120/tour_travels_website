@@ -122,6 +122,57 @@ export const driversService = {
   getPerformance: async (id, params = {}) => {
     const response = await api.get(`/admin/drivers/${id}/performance`, { params });
     return response.data;
+  },
+
+  getStats: async () => {
+    const response = await api.get('/admin/drivers/stats/overview');
+    return response.data;
+  },
+
+  toggleAvailability: async (id, isAvailable, reason) => {
+    const response = await api.put(`/admin/drivers/${id}/availability`, { isAvailable, reason });
+    return response.data;
+  },
+
+  updateLocation: async (id, latitude, longitude, address) => {
+    const response = await api.put(`/admin/drivers/${id}/location`, { latitude, longitude, address });
+    return response.data;
+  },
+
+  getNearby: async (latitude, longitude, radius = 10) => {
+    const response = await api.get('/admin/drivers/available/nearby', { 
+      params: { latitude, longitude, radius } 
+    });
+    return response.data;
+  },
+
+  autoAssign: async (bookingId, preferredDriverId, maxRadius = 10) => {
+    const response = await api.post('/admin/drivers/auto-assign', { 
+      bookingId, preferredDriverId, maxRadius 
+    });
+    return response.data;
+  },
+
+  updateEarnings: async (id, amount, type, description, bookingId) => {
+    const response = await api.put(`/admin/drivers/${id}/earnings`, { 
+      amount, type, description, bookingId 
+    });
+    return response.data;
+  },
+
+  getOrders: async (id, params = {}) => {
+    const response = await api.get(`/admin/drivers/${id}/orders`, { params });
+    return response.data;
+  },
+
+  getEarningsHistory: async (id, params = {}) => {
+    const response = await api.get(`/admin/drivers/${id}/earnings/history`, { params });
+    return response.data;
+  },
+
+  getDashboard: async (id) => {
+    const response = await api.get(`/admin/drivers/${id}/dashboard`);
+    return response.data;
   }
 };
 

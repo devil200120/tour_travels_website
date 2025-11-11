@@ -1,9 +1,9 @@
 {
   "info": {
-    "name": "Tour Travels - Complete Driver APIs",
-    "description": "Comprehensive collection of all driver-side APIs including Google Maps integration for distance, routing, and location services",
+    "name": "Tour Travels - Enhanced Driver APIs",
+    "description": "Comprehensive collection of all driver-side APIs including OTP-based authentication, secure password reset, KYC workflow, Google Maps integration for distance, routing, and location services. Features enhanced security with rate limiting and multi-factor authentication.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "3.0.0"
+    "version": "4.0.0"
   },
   "auth": {
     "type": "bearer",
@@ -32,6 +32,31 @@
       "type": "string"
     },
     {
+      "key": "driver_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "driver_phone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "login_otp",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_otp",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_token",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "order_id",
       "value": "",
       "type": "string"
@@ -50,11 +75,13 @@
                 "exec": [
                   "if (responseCode.code === 201) {",
                   "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('driver_token', response.token);",
                   "    pm.collectionVariables.set('driver_id', response.driver.id);",
-                  "    pm.test('Driver registered successfully', function () {",
-                  "        pm.expect(response.token).to.exist;",
+                  "    pm.test('Driver registered successfully - KYC Pending', function () {",
+                  "        pm.expect(response.success).to.be.true;",
                   "        pm.expect(response.driver).to.exist;",
+                  "        pm.expect(response.kycStatus).to.equal('Pending');",
+                  "        pm.expect(response.pendingApproval).to.be.true;",
+                  "        pm.expect(response.token).to.be.undefined;",
                   "    });",
                   "} else {",
                   "    pm.test('Registration failed', function () {",
@@ -76,18 +103,66 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"name\": \"Rajesh Kumar Singh\",\n    \"email\": \"rajesh.driver@example.com\",\n    \"phone\": \"+919876543210\",\n    \"alternatePhone\": \"+919876543211\",\n    \"password\": \"driver123\",\n    \"address\": {\n        \"street\": \"123 Driver Colony\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharashtra\",\n        \"pincode\": \"400001\",\n        \"country\": \"India\"\n    },\n    \"dateOfBirth\": \"1985-05-15\",\n    \"licenseNumber\": \"MH02DL987654321\",\n    \"licenseExpiry\": \"2028-05-15\",\n    \"licenseType\": \"Light Motor Vehicle\",\n    \"experience\": 10,\n    \"emergencyContact\": {\n        \"name\": \"Sunita Singh\",\n        \"phone\": \"+919876543212\",\n        \"relation\": \"Wife\"\n    },\n    \"languages\": [\"English\", \"Hindi\", \"Marathi\"],\n    \"specializations\": [\"City Tours\", \"Airport Transfer\", \"Outstation\"],\n    \"vehicleDetails\": {\n        \"make\": \"Maruti Suzuki\",\n        \"model\": \"Swift Dzire\",\n        \"year\": 2022,\n        \"color\": \"White\",\n        \"plateNumber\": \"MH02AB9876\",\n        \"fuelType\": \"Petrol\",\n        \"capacity\": 4,\n        \"features\": [\"AC\", \"GPS\", \"Music System\"]\n    }\n}"
+              "raw": "{\n    \"name\": \"Rajesh Kumar Singh\",\n    \"email\": \"rajesh.driver@example.com\",\n    \"phone\": \"+919876543210\",\n    \"alternatePhone\": \"+919876543211\",\n    \"password\": \"driver123\",\n    \"address\": {\n        \"street\": \"123 Driver Colony\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharashtra\",\n        \"pincode\": \"400001\",\n        \"country\": \"India\"\n    },\n    \"dateOfBirth\": \"1985-05-15\",\n    \"licenseNumber\": \"MH02DL987654321\",\n    \"licenseExpiry\": \"2028-05-15\",\n    \"licenseType\": \"Light Motor Vehicle\",\n    \"experience\": 10,\n    \"emergencyContact\": {\n        \"name\": \"Sunita Singh\",\n        \"phone\": \"+919876543212\",\n        \"relation\": \"Wife\"\n    },\n    \"languages\": [\"English\", \"Hindi\", \"Marathi\"],\n    \"specializations\": [\"City Tours\", \"Airport Transfer\", \"Outstation\"]\n}"
             },
             "url": {
               "raw": "{{base_url}}/auth/signup",
               "host": ["{{base_url}}"],
               "path": ["auth", "signup"]
             },
-            "description": "Register a new driver with complete profile information"
+            "description": "Register a new driver. Returns KYC pending status and requires admin approval before login access."
           }
         },
         {
-          "name": "Driver Login",
+          "name": "🔑 OTP Login - Request OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('login_otp', response.otp);",
+                  "    pm.collectionVariables.set('driver_phone', response.phone);",
+                  "    pm.collectionVariables.set('driver_email', response.email);",
+                  "    pm.test('OTP sent successfully', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.message).to.contain('OTP sent successfully');",
+                  "        pm.expect(response.expiresIn).to.equal('5 minutes');",
+                  "    });",
+                  "} else if (responseCode.code === 403) {",
+                  "    pm.test('KYC not approved', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response.kycStatus).to.exist;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"rajesh.driver@example.com\",\n    \"phone\": \"+919876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login/request-otp",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login", "request-otp"]
+            },
+            "description": "Request OTP for secure login. Requires either email or phone. Includes rate limiting (1 request per minute, 5 per day)."
+          }
+        },
+        {
+          "name": "🔐 OTP Login - Verify OTP",
           "event": [
             {
               "listen": "test",
@@ -97,13 +172,64 @@
                   "    const response = pm.response.json();",
                   "    pm.collectionVariables.set('driver_token', response.token);",
                   "    pm.collectionVariables.set('driver_id', response.driver.id);",
-                  "    pm.test('Login successful', function () {",
+                  "    pm.test('OTP Login successful', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.token).to.exist;",
+                  "        pm.expect(response.driver).to.exist;",
+                  "        pm.expect(response.driver.kycStatus).to.equal('Approved');",
+                  "    });",
+                  "} else {",
+                  "    pm.test('OTP verification failed', function () {",
+                  "        const response = pm.response.json();",
+                  "        if (response.attemptsRemaining) {",
+                  "            console.log('Attempts remaining:', response.attemptsRemaining);",
+                  "        }",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{driver_email}}\",\n    \"phone\": \"{{driver_phone}}\",\n    \"otp\": \"{{login_otp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login/verify-otp",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login", "verify-otp"]
+            },
+            "description": "Verify OTP and complete login. Max 3 attempts per OTP. Returns JWT token on success."
+          }
+        },
+        {
+          "name": "🔒 Legacy Password Login (Deprecated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('driver_token', response.token);",
+                  "    pm.collectionVariables.set('driver_id', response.driver.id);",
+                  "    pm.test('Legacy login successful', function () {",
                   "        pm.expect(response.token).to.exist;",
                   "        pm.expect(response.driver.email).to.equal('rajesh.driver@example.com');",
                   "    });",
-                  "} else {",
-                  "    pm.test('Login failed', function () {",
-                  "        pm.expect(responseCode.code).to.not.equal(200);",
+                  "} else if (responseCode.code === 400) {",
+                  "    pm.test('Redirected to OTP login', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response.useOtpLogin).to.be.true;",
                   "    });",
                   "}"
                 ],
@@ -128,11 +254,131 @@
               "host": ["{{base_url}}"],
               "path": ["auth", "login"]
             },
-            "description": "Login driver and get authentication token"
+            "description": "⚠️ DEPRECATED: Legacy password-based login. Recommends using OTP-based login for better security."
           }
         },
         {
-          "name": "Get Driver Profile",
+          "name": "📞 Forgot Password - Request Reset OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('reset_otp', response.otp);",
+                  "    pm.test('Reset OTP sent successfully', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.expiresIn).to.equal('10 minutes');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"rajesh.driver@example.com\",\n    \"phone\": \"+919876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/forgot-password/request-otp",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "forgot-password", "request-otp"]
+            },
+            "description": "Request OTP for password reset. Sends OTP via SMS and email. 10 minute expiry."
+          }
+        },
+        {
+          "name": "🔓 Forgot Password - Verify Reset OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('reset_token', response.resetToken);",
+                  "    pm.test('Reset OTP verified successfully', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.resetToken).to.exist;",
+                  "        pm.expect(response.expiresIn).to.equal('15 minutes');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"rajesh.driver@example.com\",\n    \"phone\": \"+919876543210\",\n    \"otp\": \"{{reset_otp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/forgot-password/verify-otp",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "forgot-password", "verify-otp"]
+            },
+            "description": "Verify reset OTP and get password reset token. Max 3 attempts per OTP."
+          }
+        },
+        {
+          "name": "🆕 Reset Password - Set New Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.test('Password reset successful', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.message).to.contain('Password reset successfully');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"resetToken\": \"{{reset_token}}\",\n    \"newPassword\": \"newSecurePassword123\",\n    \"confirmPassword\": \"newSecurePassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "reset-password"]
+            },
+            "description": "Set new password using reset token. Requires password confirmation and minimum 6 characters."
+          }
+        },
+        {
+          "name": "👤 Get Driver Profile",
           "request": {
             "method": "GET",
             "header": [],
@@ -141,55 +387,11 @@
               "host": ["{{base_url}}"],
               "path": ["auth", "profile"]
             },
-            "description": "Get current driver profile information"
+            "description": "Get current authenticated driver profile information"
           }
         },
         {
-          "name": "Forgot Password",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"email\": \"rajesh.driver@example.com\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/auth/forgot-password",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "forgot-password"]
-            },
-            "description": "Request password reset for driver"
-          }
-        },
-        {
-          "name": "Reset Password",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"resetToken\": \"reset_token_here\",\n    \"newPassword\": \"newPassword123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/auth/reset-password",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "reset-password"]
-            },
-            "description": "Reset driver password using reset token"
-          }
-        },
-        {
-          "name": "Logout",
+          "name": "🚪 Logout",
           "request": {
             "method": "POST",
             "header": [],
@@ -198,11 +400,11 @@
               "host": ["{{base_url}}"],
               "path": ["auth", "logout"]
             },
-            "description": "Logout driver and invalidate token"
+            "description": "Logout driver and invalidate current session"
           }
         }
       ],
-      "description": "Complete driver authentication system"
+      "description": "Complete driver authentication system with OTP-based login and secure password reset"
     },
     {
       "name": "📊 Driver Dashboard",

@@ -15,10 +15,40 @@ router.get('/orders', async (req, res) => {
         const driverId = req.user.id;
         const { status, page = 1, limit = 10 } = req.query;
 
-        const query = { assignedDriver: driverId };
-        if (status) {
-            query.status = status;
+        let query = {};
+
+        // Special handling for different status types
+        if (status === 'pending' || status === 'Pending') {
+            // For pending orders, show both assigned to this driver AND unassigned orders
+            query = {
+                status: 'Pending',
+                $or: [
+                    { assignedDriver: driverId },
+                    { assignedDriver: { $exists: false } },
+                    { assignedDriver: null }
+                ]
+            };
+        } else if (status === 'available') {
+            // Show only unassigned pending orders
+            query = {
+                status: 'Pending',
+                $or: [
+                    { assignedDriver: { $exists: false } },
+                    { assignedDriver: null }
+                ]
+            };
+        } else {
+            // For all other statuses, show only orders assigned to this driver
+            query = { assignedDriver: driverId };
+            if (status) {
+                query.status = status;
+            }
         }
+
+        console.log('🔍 Debug Orders Query:');
+        console.log('Driver ID:', driverId);
+        console.log('Status filter:', status);
+        console.log('MongoDB Query:', JSON.stringify(query, null, 2));
 
         const orders = await Booking.find(query)
             .populate('customer', 'firstName lastName phone email')
@@ -29,40 +59,48 @@ router.get('/orders', async (req, res) => {
 
         const totalOrders = await Booking.countDocuments(query);
 
+        console.log('📊 Query Results:');
+        console.log('Total orders found:', totalOrders);
+        console.log('Orders returned:', orders.length);
+
         const ordersWithDetails = orders.map(order => ({
             id: order._id,
             bookingId: order.bookingId,
             customer: {
-                id: order.customerId?._id,
-                name: order.customerId?.name || 'N/A',
-                phone: order.customerId?.phone || 'N/A',
-                email: order.customerId?.email || 'N/A'
+                id: order.customerId?._id || order.customer?._id,
+                name: order.customer?.name || `${order.customer?.firstName || ''} ${order.customer?.lastName || ''}`.trim() || 'N/A',
+                phone: order.customer?.phone || 'N/A',
+                email: order.customer?.email || 'N/A'
             },
             package: {
                 id: order.packageId?._id,
-                name: order.packageId?.name || 'Custom Trip',
-                duration: order.packageId?.duration || 'N/A',
-                vehicleType: order.packageId?.vehicleType || 'Any'
+                name: order.packageId?.name || order.packageDetails?.name || 'Custom Trip',
+                duration: order.packageId?.duration || order.packageDetails?.duration || 'N/A',
+                vehicleType: order.packageId?.vehicleType || order.vehiclePreference || 'Any'
             },
             pickup: {
-                address: order.pickupLocation?.address || 'N/A',
-                coordinates: order.pickupLocation?.coordinates || null,
-                time: order.pickupTime
+                address: order.pickupLocation?.address || order.pickup?.address || 'N/A',
+                coordinates: order.pickupLocation?.coordinates || order.pickup?.coordinates || null,
+                time: order.pickupTime || order.schedule?.startDate
             },
             dropoff: {
-                address: order.dropoffLocation?.address || 'N/A',
-                coordinates: order.dropoffLocation?.coordinates || null,
+                address: order.dropoffLocation?.address || order.dropoff?.address || 'N/A',
+                coordinates: order.dropoffLocation?.coordinates || order.dropoff?.coordinates || null,
                 time: order.dropoffTime
             },
             status: order.status,
-            totalAmount: order.totalAmount || 0,
+            totalAmount: order.totalAmount || order.pricing?.totalAmount || 0,
             distance: order.distance || 0,
-            estimatedDuration: order.duration || 0,
-            specialInstructions: order.specialInstructions || '',
+            estimatedDuration: order.duration || order.estimatedDuration || 0,
+            specialInstructions: order.specialInstructions || order.specialRequests || '',
             paymentStatus: order.paymentStatus || 'Pending',
             createdAt: order.createdAt,
-            pickupTime: order.pickupTime,
-            assignedAt: order.updatedAt
+            pickupTime: order.pickupTime || order.schedule?.startDate,
+            assignedAt: order.updatedAt,
+            assignedDriver: order.assignedDriver,
+            vehiclePreference: order.vehiclePreference,
+            tripType: order.tripType || 'one-way',
+            passengers: order.passengers || 1
         }));
 
         res.json({
@@ -73,6 +111,11 @@ router.get('/orders', async (req, res) => {
                 totalPages: Math.ceil(totalOrders / limit),
                 totalOrders,
                 limit: parseInt(limit)
+            },
+            debug: {
+                query,
+                driverId,
+                statusFilter: status
             }
         });
 

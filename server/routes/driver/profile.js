@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(driverAuth);
 
 // Get Driver Profile
-router.get('/profile', async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const driverId = req.user.id;
         
@@ -37,7 +37,7 @@ router.get('/profile', async (req, res) => {
 });
 
 // Update Driver Profile
-router.put('/profile', async (req, res) => {
+router.put('/', async (req, res) => {
     try {
         const driverId = req.user.id;
         const {

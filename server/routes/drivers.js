@@ -199,32 +199,104 @@ router.put('/:id/kyc',
       const { id } = req.params;
       const { kycStatus, notes } = req.body;
 
-      const driver = await Driver.findByIdAndUpdate(
-        id,
-        { 
-          kycStatus,
-          ...(notes && { 'notes.kycNotes': notes })
-        },
-        { new: true }
-      );
-
+      const driver = await Driver.findById(id);
       if (!driver) {
         return res.status(404).json({ message: 'Driver not found' });
       }
 
-      // If approved, make driver active
-      if (kycStatus === 'Approved') {
-        driver.isActive = true;
-        await driver.save();
+      const previousStatus = driver.kycStatus;
+
+      // Update driver KYC status
+      driver.kycStatus = kycStatus;
+      if (notes) {
+        if (!driver.notes) driver.notes = {};
+        driver.notes.kycNotes = notes;
       }
 
+      // Handle different status updates
+      switch (kycStatus) {
+        case 'Approved':
+          driver.isActive = true;
+          driver.isAvailable = true; // Allow driver to start accepting rides
+          driver.approvalDate = new Date();
+          break;
+        case 'Rejected':
+          driver.isActive = false;
+          driver.isAvailable = false;
+          break;
+        case 'Under Review':
+          driver.isAvailable = false; // Prevent taking rides during review
+          break;
+        default:
+          driver.isAvailable = false;
+      }
+
+      await driver.save();
+
+      // Create appropriate response message
+      let responseMessage;
+      let driverNotificationMessage;
+
+      switch (kycStatus) {
+        case 'Approved':
+          responseMessage = 'Driver KYC approved successfully. Driver can now start accepting rides.';
+          driverNotificationMessage = 'Congratulations! Your KYC has been approved. You can now start accepting ride requests.';
+          break;
+        case 'Rejected':
+          responseMessage = 'Driver KYC rejected. Driver account has been deactivated.';
+          driverNotificationMessage = `Your KYC has been rejected. ${notes ? 'Reason: ' + notes : 'Please contact support for more information.'} Contact: support@tourtravel.com`;
+          break;
+        case 'Under Review':
+          responseMessage = 'Driver KYC moved to under review status.';
+          driverNotificationMessage = 'Your KYC documents are currently under review. We will notify you once the review is complete.';
+          break;
+        default:
+          responseMessage = `Driver KYC status updated to ${kycStatus}.`;
+          driverNotificationMessage = `Your KYC status has been updated to ${kycStatus}.`;
+      }
+
+      // Log the KYC status change for audit purposes
+      console.log(`Driver KYC Status Change:`, {
+        driverId: driver._id,
+        driverName: driver.name,
+        previousStatus,
+        newStatus: kycStatus,
+        updatedBy: req.user.id, // Admin who made the change
+        timestamp: new Date(),
+        notes: notes || 'No notes provided'
+      });
+
       res.json({
-        message: `Driver KYC status updated to ${kycStatus}`,
-        driver
+        success: true,
+        message: responseMessage,
+        driver: {
+          id: driver._id,
+          name: driver.name,
+          email: driver.email,
+          phone: driver.phone,
+          kycStatus: driver.kycStatus,
+          isActive: driver.isActive,
+          isAvailable: driver.isAvailable,
+          approvalDate: driver.approvalDate,
+          notes: driver.notes
+        },
+        statusChange: {
+          from: previousStatus,
+          to: kycStatus,
+          timestamp: new Date()
+        },
+        driverNotification: {
+          message: driverNotificationMessage,
+          shouldNotify: true
+        }
       });
     } catch (error) {
       console.error('Update KYC error:', error);
-      res.status(500).json({ message: 'Server error' });
+      res.status(500).json({ 
+        success: false,
+        message: 'Failed to update KYC status',
+        error: error.message 
+      });
     }
   }
 );

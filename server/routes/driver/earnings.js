@@ -7,6 +7,199 @@ const router = express.Router();
 // Apply driver authentication middleware to all routes
 router.use(driverAuth);
 
+// Get Today's Earnings (Quick Summary)
+router.get('/today', async (req, res) => {
+    try {
+        const driverId = req.user.id;
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setDate(endOfDay.getDate() + 1);
+
+        console.log('🔍 Debug Today\'s Earnings:');
+        console.log('Driver ID:', driverId);
+        console.log('Start of day:', startOfDay);
+        console.log('End of day:', endOfDay);
+
+        // Get today's completed trips
+        const todayTrips = await Booking.find({
+            assignedDriver: driverId,
+            status: 'Completed',
+            endTime: {
+                $gte: startOfDay,
+                $lt: endOfDay
+            }
+        }).populate('customer', 'firstName lastName phone');
+
+        console.log('Today\'s trips found:', todayTrips.length);
+
+        // Calculate earnings
+        const grossEarnings = todayTrips.reduce((sum, trip) => sum + (trip.totalAmount || 0), 0);
+        const commission = grossEarnings * 0.15; // 15% platform commission
+        const netEarnings = grossEarnings - commission;
+
+        // Get trips currently in progress
+        const ongoingTrips = await Booking.find({
+            assignedDriver: driverId,
+            status: 'In Progress'
+        }).populate('customer', 'firstName lastName phone');
+
+        // Calculate distance and time
+        const totalDistance = todayTrips.reduce((sum, trip) => sum + (trip.actualDistance || trip.distance || 0), 0);
+        const totalDuration = todayTrips.reduce((sum, trip) => sum + (trip.duration || 0), 0);
+
+        // Format trip details
+        const tripDetails = todayTrips.map(trip => ({
+            id: trip._id,
+            bookingId: trip.bookingId,
+            customer: {
+                name: trip.customer ? `${trip.customer.firstName || ''} ${trip.customer.lastName || ''}`.trim() : 'N/A',
+                phone: trip.customer?.phone || 'N/A'
+            },
+            pickup: trip.pickup?.address || trip.pickupLocation?.address || 'N/A',
+            dropoff: trip.dropoff?.address || trip.dropoffLocation?.address || 'N/A',
+            amount: trip.totalAmount || 0,
+            distance: trip.actualDistance || trip.distance || 0,
+            duration: trip.duration || 0,
+            startTime: trip.startTime,
+            endTime: trip.endTime,
+            commission: (trip.totalAmount || 0) * 0.15,
+            netAmount: (trip.totalAmount || 0) * 0.85
+        }));
+
+        res.json({
+            success: true,
+            todayEarnings: {
+                summary: {
+                    grossEarnings: parseFloat(grossEarnings.toFixed(2)),
+                    commission: parseFloat(commission.toFixed(2)),
+                    netEarnings: parseFloat(netEarnings.toFixed(2)),
+                    tripCount: todayTrips.length,
+                    ongoingTrips: ongoingTrips.length,
+                    totalDistance: parseFloat(totalDistance.toFixed(2)),
+                    totalDuration: Math.round(totalDuration), // in minutes
+                    averagePerTrip: todayTrips.length > 0 ? parseFloat((grossEarnings / todayTrips.length).toFixed(2)) : 0
+                },
+                trips: tripDetails,
+                ongoingTrips: ongoingTrips.map(trip => ({
+                    id: trip._id,
+                    bookingId: trip.bookingId,
+                    customer: {
+                        name: trip.customer ? `${trip.customer.firstName || ''} ${trip.customer.lastName || ''}`.trim() : 'N/A',
+                        phone: trip.customer?.phone || 'N/A'
+                    },
+                    pickup: trip.pickup?.address || trip.pickupLocation?.address || 'N/A',
+                    dropoff: trip.dropoff?.address || trip.dropoffLocation?.address || 'N/A',
+                    startTime: trip.startTime,
+                    estimatedAmount: trip.totalAmount || 0
+                })),
+                date: today.toISOString().split('T')[0]
+            }
+        });
+
+    } catch (error) {
+        console.error('Today\'s earnings error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch today\'s earnings',
+            error: error.message
+        });
+    }
+});
+
+// Get This Week's Earnings
+router.get('/week', async (req, res) => {
+    try {
+        const driverId = req.user.id;
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+        startOfWeek.setHours(0, 0, 0, 0);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+        const weekTrips = await Booking.find({
+            assignedDriver: driverId,
+            status: 'Completed',
+            endTime: {
+                $gte: startOfWeek,
+                $lt: endOfWeek
+            }
+        }).populate('customer', 'firstName lastName phone');
+
+        const grossEarnings = weekTrips.reduce((sum, trip) => sum + (trip.totalAmount || 0), 0);
+        const commission = grossEarnings * 0.15;
+        const netEarnings = grossEarnings - commission;
+
+        res.json({
+            success: true,
+            weekEarnings: {
+                summary: {
+                    grossEarnings: parseFloat(grossEarnings.toFixed(2)),
+                    commission: parseFloat(commission.toFixed(2)),
+                    netEarnings: parseFloat(netEarnings.toFixed(2)),
+                    tripCount: weekTrips.length,
+                    weekStart: startOfWeek.toISOString().split('T')[0],
+                    weekEnd: endOfWeek.toISOString().split('T')[0]
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Week earnings error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch week earnings',
+            error: error.message
+        });
+    }
+});
+
+// Get This Month's Earnings
+router.get('/month', async (req, res) => {
+    try {
+        const driverId = req.user.id;
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        endOfMonth.setHours(23, 59, 59, 999);
+
+        const monthTrips = await Booking.find({
+            assignedDriver: driverId,
+            status: 'Completed',
+            endTime: {
+                $gte: startOfMonth,
+                $lte: endOfMonth
+            }
+        }).populate('customer', 'firstName lastName phone');
+
+        const grossEarnings = monthTrips.reduce((sum, trip) => sum + (trip.totalAmount || 0), 0);
+        const commission = grossEarnings * 0.15;
+        const netEarnings = grossEarnings - commission;
+
+        res.json({
+            success: true,
+            monthEarnings: {
+                summary: {
+                    grossEarnings: parseFloat(grossEarnings.toFixed(2)),
+                    commission: parseFloat(commission.toFixed(2)),
+                    netEarnings: parseFloat(netEarnings.toFixed(2)),
+                    tripCount: monthTrips.length,
+                    month: today.toLocaleString('default', { month: 'long', year: 'numeric' })
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Month earnings error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch month earnings',
+            error: error.message
+        });
+    }
+});
+
 // Get Driver Earnings Overview
 router.get('/earnings-overview', async (req, res) => {
     try {
@@ -25,7 +218,7 @@ router.get('/earnings-overview', async (req, res) => {
 
         // Get completed bookings for calculations
         const allCompletedTrips = await Booking.find({
-            driverId: driverId,
+            assignedDriver: driverId,
             status: 'Completed'
         }).sort({ endTime: -1 });
 
@@ -116,7 +309,7 @@ router.get('/earnings-history', async (req, res) => {
 
         // Build query for bookings
         const bookingQuery = {
-            driverId: driverId,
+            assignedDriver: driverId,
             status: 'Completed'
         };
 
@@ -224,7 +417,7 @@ router.post('/request-withdrawal', async (req, res) => {
 
         // Calculate available balance
         const completedTrips = await Booking.find({
-            driverId: driverId,
+            assignedDriver: driverId,
             status: 'Completed'
         });
 
@@ -485,7 +678,7 @@ router.get('/analytics', async (req, res) => {
         const trips = await Booking.aggregate([
             {
                 $match: {
-                    driverId: driverId,
+                    assignedDriver: driverId,
                     status: 'Completed',
                     endTime: { $gte: startDate }
                 }
