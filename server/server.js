@@ -63,6 +63,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Serve static files (uploaded documents)
+app.use('/uploads', express.static('uploads'));
+
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/tour_travels_admin', {
   useNewUrlParser: true,

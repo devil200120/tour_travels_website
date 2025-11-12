@@ -5,11 +5,12 @@ import process from 'process';
 import Driver from '../../models/Driver.js';
 import driverAuth from '../../middleware/driverAuth.js';
 import otpRateLimit from '../../middleware/otpRateLimit.js';
+import { uploadDriverDocuments } from '../../middleware/fileUpload.js';
 import OTPService from '../../services/otpService.js';
 const router = express.Router();
 
-// Driver Registration/Signup
-router.post('/signup', async (req, res) => {
+// Driver Registration/Signup with Document Upload
+router.post('/signup', uploadDriverDocuments, async (req, res) => {
     try {
         const {
             name,
@@ -26,8 +27,54 @@ router.post('/signup', async (req, res) => {
             emergencyContact,
             languages,
             specializations,
-            vehicleDetails
+            vehicleDetails,
+            bankDetails
         } = req.body;
+
+        // Validate required fields
+        if (!name || !email || !phone || !password || !licenseNumber) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name, email, phone, password, and license number are required'
+            });
+        }
+
+        // Validate required documents are uploaded
+        if (!req.files) {
+            return res.status(400).json({
+                success: false,
+                message: 'Document files are required for registration'
+            });
+        }
+
+        const requiredDocuments = ['aadharCard', 'panCard', 'licenseImage'];
+        const missingDocuments = [];
+
+        requiredDocuments.forEach(doc => {
+            if (!req.files[doc] || !req.files[doc][0]) {
+                missingDocuments.push(doc);
+            }
+        });
+
+        if (missingDocuments.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Required documents are missing',
+                missingDocuments: missingDocuments.map(doc => {
+                    switch(doc) {
+                        case 'aadharCard': return 'Aadhar Card';
+                        case 'panCard': return 'PAN Card';
+                        case 'licenseImage': return 'Driving License Image';
+                        default: return doc;
+                    }
+                }),
+                requiredDocuments: [
+                    'Aadhar Card',
+                    'PAN Card',
+                    'Driving License Image'
+                ]
+            });
+        }
 
         // Check if driver already exists
         const existingDriver = await Driver.findOne({
@@ -45,9 +92,64 @@ router.post('/signup', async (req, res) => {
             });
         }
 
+        // Process uploaded files
+        const documents = {};
+        let profileImage = null;
+
+        if (req.files) {
+            // Profile image
+            if (req.files.profileImage && req.files.profileImage[0]) {
+                profileImage = req.files.profileImage[0].path;
+            }
+
+            // Documents
+            if (req.files.aadharCard && req.files.aadharCard[0]) {
+                documents.aadharCard = req.files.aadharCard[0].path;
+            }
+            if (req.files.panCard && req.files.panCard[0]) {
+                documents.panCard = req.files.panCard[0].path;
+            }
+            if (req.files.licenseImage && req.files.licenseImage[0]) {
+                documents.licenseImage = req.files.licenseImage[0].path;
+            }
+            if (req.files.policeVerification && req.files.policeVerification[0]) {
+                documents.policeVerification = req.files.policeVerification[0].path;
+            }
+            if (req.files.medicalCertificate && req.files.medicalCertificate[0]) {
+                documents.medicalCertificate = req.files.medicalCertificate[0].path;
+            }
+        }
+
         // Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Parse complex fields
+        let parsedAddress = {};
+        let parsedEmergencyContact = {};
+        let parsedBankDetails = {};
+        
+        try {
+            if (address && typeof address === 'string') {
+                parsedAddress = JSON.parse(address);
+            } else if (address && typeof address === 'object') {
+                parsedAddress = address;
+            }
+            
+            if (emergencyContact && typeof emergencyContact === 'string') {
+                parsedEmergencyContact = JSON.parse(emergencyContact);
+            } else if (emergencyContact && typeof emergencyContact === 'object') {
+                parsedEmergencyContact = emergencyContact;
+            }
+
+            if (bankDetails && typeof bankDetails === 'string') {
+                parsedBankDetails = JSON.parse(bankDetails);
+            } else if (bankDetails && typeof bankDetails === 'object') {
+                parsedBankDetails = bankDetails;
+            }
+        } catch (parseError) {
+            console.warn('JSON parsing error for complex fields:', parseError.message);
+        }
 
         // Create new driver
         const newDriver = new Driver({
@@ -56,30 +158,33 @@ router.post('/signup', async (req, res) => {
             phone,
             alternatePhone,
             password: hashedPassword,
-            address,
+            address: parsedAddress,
             dateOfBirth,
             licenseNumber,
             licenseExpiry,
             licenseType,
             experience: experience || 0,
-            emergencyContact,
-            languages: languages || ['English'],
-            specializations: specializations || [],
+            profileImage,
+            documents,
+            bankDetails: parsedBankDetails,
+            emergencyContact: parsedEmergencyContact,
+            languages: Array.isArray(languages) ? languages : (languages ? languages.split(',') : ['English']),
+            specializations: Array.isArray(specializations) ? specializations : (specializations ? specializations.split(',') : []),
             vehicleDetails,
-            kycStatus: 'Pending',
+            kycStatus: 'Under Review', // Since required documents are uploaded, set to Under Review
             isActive: true,
             isAvailable: false,
+            documentsUploadedAt: new Date(), // Always set since documents are required
             registrationDate: new Date()
         });
 
         await newDriver.save();
 
         // Don't generate token for new drivers until KYC is approved
-        // This prevents immediate login and ensures admin approval flow
         
         res.status(201).json({
             success: true,
-            message: 'Driver registered successfully. Your account is pending admin approval.',
+            message: 'Driver registered successfully with documents. Your account is under review.',
             pendingApproval: true,
             driver: {
                 id: newDriver._id,
@@ -88,13 +193,17 @@ router.post('/signup', async (req, res) => {
                 phone: newDriver.phone,
                 kycStatus: newDriver.kycStatus,
                 isActive: newDriver.isActive,
-                isAvailable: false, // Not available until approved
-                registrationDate: newDriver.registrationDate
+                isAvailable: false,
+                registrationDate: newDriver.registrationDate,
+                documentsUploaded: true,
+                uploadedDocuments: Object.keys(documents)
             },
             nextSteps: {
-                message: 'Please wait for admin approval. You will be notified once your KYC documents are verified.',
+                message: 'Your documents are being reviewed by our admin team. You will be notified once verification is complete.',
                 estimatedTime: '24-48 hours',
-                contactSupport: 'For urgent queries, contact support at support@tourtravel.com'
+                contactSupport: 'For urgent queries, contact support at support@tourtravel.com',
+                documentsUploaded: Object.keys(documents),
+                status: 'Under Review'
             }
         });
 
@@ -103,6 +212,178 @@ router.post('/signup', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Registration failed',
+            error: error.message
+        });
+    }
+});
+
+// Upload/Update Driver Documents
+router.post('/upload-documents', uploadDriverDocuments, async (req, res) => {
+    try {
+        const { driverId, email } = req.body;
+        
+        if (!driverId && !email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Driver ID or email is required'
+            });
+        }
+
+        // Find driver
+        const driver = await Driver.findOne({
+            $or: [
+                { _id: driverId },
+                { email: email }
+            ]
+        });
+
+        if (!driver) {
+            return res.status(404).json({
+                success: false,
+                message: 'Driver not found'
+            });
+        }
+
+        // Process uploaded files
+        const uploadedDocuments = {};
+        let profileImageUpdated = false;
+
+        if (req.files) {
+            // Profile image
+            if (req.files.profileImage && req.files.profileImage[0]) {
+                driver.profileImage = req.files.profileImage[0].path;
+                profileImageUpdated = true;
+            }
+
+            // Documents
+            if (req.files.aadharCard && req.files.aadharCard[0]) {
+                driver.documents.aadharCard = req.files.aadharCard[0].path;
+                uploadedDocuments.aadharCard = true;
+            }
+            if (req.files.panCard && req.files.panCard[0]) {
+                driver.documents.panCard = req.files.panCard[0].path;
+                uploadedDocuments.panCard = true;
+            }
+            if (req.files.licenseImage && req.files.licenseImage[0]) {
+                driver.documents.licenseImage = req.files.licenseImage[0].path;
+                uploadedDocuments.licenseImage = true;
+            }
+            if (req.files.policeVerification && req.files.policeVerification[0]) {
+                driver.documents.policeVerification = req.files.policeVerification[0].path;
+                uploadedDocuments.policeVerification = true;
+            }
+            if (req.files.medicalCertificate && req.files.medicalCertificate[0]) {
+                driver.documents.medicalCertificate = req.files.medicalCertificate[0].path;
+                uploadedDocuments.medicalCertificate = true;
+            }
+        }
+
+        if (Object.keys(uploadedDocuments).length === 0 && !profileImageUpdated) {
+            return res.status(400).json({
+                success: false,
+                message: 'No files were uploaded'
+            });
+        }
+
+        // Update documents upload timestamp
+        driver.documentsUploadedAt = new Date();
+        
+        // If all required documents are uploaded, set KYC status to Under Review
+        const requiredDocs = ['aadharCard', 'panCard', 'licenseImage'];
+        const hasAllRequired = requiredDocs.every(doc => driver.documents[doc]);
+        
+        if (hasAllRequired && driver.kycStatus === 'Pending') {
+            driver.kycStatus = 'Under Review';
+        }
+
+        await driver.save();
+
+        res.json({
+            success: true,
+            message: 'Documents uploaded successfully',
+            uploadedDocuments: Object.keys(uploadedDocuments),
+            profileImageUpdated,
+            driver: {
+                id: driver._id,
+                name: driver.name,
+                email: driver.email,
+                kycStatus: driver.kycStatus,
+                documentsUploadedAt: driver.documentsUploadedAt
+            },
+            documentsStatus: {
+                aadharCard: !!driver.documents.aadharCard,
+                panCard: !!driver.documents.panCard,
+                licenseImage: !!driver.documents.licenseImage,
+                policeVerification: !!driver.documents.policeVerification,
+                medicalCertificate: !!driver.documents.medicalCertificate,
+                allRequiredUploaded: hasAllRequired
+            }
+        });
+
+    } catch (error) {
+        console.error('Document upload error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Document upload failed',
+            error: error.message
+        });
+    }
+});
+
+// Check Document Upload Status
+router.get('/documents-status/:driverId', async (req, res) => {
+    try {
+        const { driverId } = req.params;
+        
+        const driver = await Driver.findById(driverId).select('name email documents kycStatus documentsUploadedAt profileImage');
+        
+        if (!driver) {
+            return res.status(404).json({
+                success: false,
+                message: 'Driver not found'
+            });
+        }
+
+        const documentsStatus = {
+            aadharCard: !!driver.documents?.aadharCard,
+            panCard: !!driver.documents?.panCard,
+            licenseImage: !!driver.documents?.licenseImage,
+            policeVerification: !!driver.documents?.policeVerification,
+            medicalCertificate: !!driver.documents?.medicalCertificate,
+            profileImage: !!driver.profileImage
+        };
+
+        const requiredDocs = ['aadharCard', 'panCard', 'licenseImage'];
+        const allRequiredUploaded = requiredDocs.every(doc => documentsStatus[doc]);
+
+        res.json({
+            success: true,
+            driver: {
+                id: driver._id,
+                name: driver.name,
+                email: driver.email,
+                kycStatus: driver.kycStatus,
+                documentsUploadedAt: driver.documentsUploadedAt
+            },
+            documentsStatus,
+            allRequiredUploaded,
+            requiredDocuments: [
+                'Aadhar Card',
+                'PAN Card', 
+                'Driving License Image'
+            ],
+            optionalDocuments: [
+                'Police Verification Certificate',
+                'Medical Certificate',
+                'Profile Image'
+            ]
+        });
+
+    } catch (error) {
+        console.error('Document status check error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to check document status',
             error: error.message
         });
     }

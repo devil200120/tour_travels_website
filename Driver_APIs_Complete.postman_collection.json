@@ -1,9 +1,9 @@
 {
   "info": {
-    "name": "Tour Travels - Enhanced Driver APIs",
-    "description": "Comprehensive collection of all driver-side APIs including OTP-based authentication, secure password reset, KYC workflow, Google Maps integration for distance, routing, and location services. Features enhanced security with rate limiting and multi-factor authentication.",
+    "name": "Tour Travels - Enhanced Driver APIs with Document Upload",
+    "description": "Comprehensive collection of all driver-side APIs including OTP-based authentication, secure password reset, KYC workflow with document upload support, Google Maps integration for distance, routing, and location services. Features enhanced security with rate limiting and multi-factor authentication.\n\n**NEW FEATURES:**\n✅ Document Upload Support in Signup\n✅ Separate Document Upload Endpoint\n✅ Document Status Tracking\n✅ Multipart Form Data Support\n✅ File Validation (JPEG, PNG, PDF)\n✅ Automatic KYC Status Progression\n\n**TESTING DOCUMENT UPLOADS:**\n1. Use the 'Driver Signup (with Document Upload)' request for complete registration\n2. Use 'Upload Documents (Separate Endpoint)' for additional document uploads\n3. Check 'Document Upload Status' to verify uploads\n4. Test with actual image/PDF files in Postman\n\n**SUPPORTED FILE FORMATS:**\n- Images: JPEG, PNG, WebP (max 10MB)\n- Documents: PDF (max 10MB)\n- Profile Image: JPEG/PNG recommended\n\n**REQUIRED DOCUMENTS FOR KYC:**\n- Aadhar Card (Government ID)\n- PAN Card (Tax ID)\n- Driving License Image\n\n**OPTIONAL DOCUMENTS:**\n- Police Verification Certificate\n- Medical Certificate",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "4.0.0"
+    "version": "5.0.0"
   },
   "auth": {
     "type": "bearer",
@@ -67,7 +67,7 @@
       "name": "🔐 Driver Authentication",
       "item": [
         {
-          "name": "Driver Signup",
+          "name": "Driver Signup (with Document Upload)",
           "event": [
             {
               "listen": "test",
@@ -79,9 +79,15 @@
                   "    pm.test('Driver registered successfully - KYC Pending', function () {",
                   "        pm.expect(response.success).to.be.true;",
                   "        pm.expect(response.driver).to.exist;",
-                  "        pm.expect(response.kycStatus).to.equal('Pending');",
+                  "        pm.expect(response.driver.kycStatus).to.equal('Pending');",
                   "        pm.expect(response.pendingApproval).to.be.true;",
                   "        pm.expect(response.token).to.be.undefined;",
+                  "        pm.expect(response.driver.documentsUploaded).to.exist;",
+                  "        pm.expect(response.driver.uploadedDocuments).to.be.an('array');",
+                  "    });",
+                  "    pm.test('Document upload status provided', function () {",
+                  "        pm.expect(response.nextSteps.documentsRequired).to.be.an('array');",
+                  "        pm.expect(response.nextSteps.documentsUploaded).to.be.an('array');",
                   "    });",
                   "} else {",
                   "    pm.test('Registration failed', function () {",
@@ -98,19 +104,364 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "multipart/form-data",
+                "disabled": true
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n    \"name\": \"Rajesh Kumar Singh\",\n    \"email\": \"rajesh.driver@example.com\",\n    \"phone\": \"+919876543210\",\n    \"alternatePhone\": \"+919876543211\",\n    \"password\": \"driver123\",\n    \"address\": {\n        \"street\": \"123 Driver Colony\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharashtra\",\n        \"pincode\": \"400001\",\n        \"country\": \"India\"\n    },\n    \"dateOfBirth\": \"1985-05-15\",\n    \"licenseNumber\": \"MH02DL987654321\",\n    \"licenseExpiry\": \"2028-05-15\",\n    \"licenseType\": \"Light Motor Vehicle\",\n    \"experience\": 10,\n    \"emergencyContact\": {\n        \"name\": \"Sunita Singh\",\n        \"phone\": \"+919876543212\",\n        \"relation\": \"Wife\"\n    },\n    \"languages\": [\"English\", \"Hindi\", \"Marathi\"],\n    \"specializations\": [\"City Tours\", \"Airport Transfer\", \"Outstation\"]\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Rajesh Kumar Singh",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "rajesh.driver@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "+919876543210",
+                  "type": "text"
+                },
+                {
+                  "key": "alternatePhone",
+                  "value": "+919876543211",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "driver123",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "{\"street\": \"123 Driver Colony\", \"city\": \"Mumbai\", \"state\": \"Maharashtra\", \"pincode\": \"400001\", \"country\": \"India\"}",
+                  "type": "text"
+                },
+                {
+                  "key": "dateOfBirth",
+                  "value": "1985-05-15",
+                  "type": "text"
+                },
+                {
+                  "key": "licenseNumber",
+                  "value": "MH02DL987654321",
+                  "type": "text"
+                },
+                {
+                  "key": "licenseExpiry",
+                  "value": "2028-05-15",
+                  "type": "text"
+                },
+                {
+                  "key": "licenseType",
+                  "value": "Light Motor Vehicle",
+                  "type": "text"
+                },
+                {
+                  "key": "experience",
+                  "value": "10",
+                  "type": "text"
+                },
+                {
+                  "key": "emergencyContact",
+                  "value": "{\"name\": \"Sunita Singh\", \"phone\": \"+919876543212\", \"relation\": \"Wife\"}",
+                  "type": "text"
+                },
+                {
+                  "key": "languages",
+                  "value": "English,Hindi,Marathi",
+                  "type": "text"
+                },
+                {
+                  "key": "specializations",
+                  "value": "City Tours,Airport Transfer,Outstation",
+                  "type": "text"
+                },
+                {
+                  "key": "bankDetails",
+                  "value": "{\"accountNumber\": \"1234567890\", \"ifscCode\": \"HDFC0001234\", \"bankName\": \"HDFC Bank\", \"accountHolderName\": \"Rajesh Kumar Singh\"}",
+                  "type": "text"
+                },
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "src": [],
+                  "description": "Driver profile photo (JPEG/PNG, max 10MB)"
+                },
+                {
+                  "key": "aadharCard",
+                  "type": "file",
+                  "src": [],
+                  "description": "Aadhar Card document (JPEG/PNG/PDF, max 10MB) - MANDATORY"
+                },
+                {
+                  "key": "panCard",
+                  "type": "file",
+                  "src": [],
+                  "description": "PAN Card document (JPEG/PNG/PDF, max 10MB) - MANDATORY"
+                },
+                {
+                  "key": "licenseImage",
+                  "type": "file",
+                  "src": [],
+                  "description": "Driving License image (JPEG/PNG/PDF, max 10MB) - MANDATORY"
+                },
+                {
+                  "key": "policeVerification",
+                  "type": "file",
+                  "src": [],
+                  "description": "Police Verification Certificate (PDF, max 10MB)"
+                },
+                {
+                  "key": "medicalCertificate",
+                  "type": "file",
+                  "src": [],
+                  "description": "Medical Certificate (PDF, max 10MB)"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/auth/signup",
               "host": ["{{base_url}}"],
               "path": ["auth", "signup"]
             },
-            "description": "Register a new driver. Returns KYC pending status and requires admin approval before login access."
+            "description": "Register a new driver with document upload support. Supports both basic registration and document upload in a single request. Documents are optional but recommended for faster KYC approval.\n\n**Required Documents:**\n- Aadhar Card\n- PAN Card\n- Driving License\n\n**Optional Documents:**\n- Police Verification Certificate\n- Medical Certificate\n- Profile Image\n\n**Supported Formats:** JPEG, PNG, PDF (max 10MB per file)\n\n**Response includes:**\n- Driver registration status\n- Document upload confirmation\n- KYC status and next steps"
+          }
+        },
+        {
+          "name": "Upload Documents (Separate Endpoint)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.test('Documents uploaded successfully', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.uploadedDocuments).to.be.an('array');",
+                  "        pm.expect(response.documentsStatus).to.exist;",
+                  "    });",
+                  "    pm.test('KYC status updated if all required docs uploaded', function () {",
+                  "        if (response.documentsStatus.allRequiredUploaded) {",
+                  "            pm.expect(response.driver.kycStatus).to.be.oneOf(['Pending', 'Under Review']);",
+                  "        }",
+                  "    });",
+                  "} else {",
+                  "    pm.test('Document upload failed', function () {",
+                  "        pm.expect(responseCode.code).to.not.equal(200);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "driverId",
+                  "value": "{{driver_id}}",
+                  "type": "text",
+                  "description": "Driver ID (required if email not provided)"
+                },
+                {
+                  "key": "email",
+                  "value": "rajesh.driver@example.com",
+                  "type": "text",
+                  "description": "Driver email (required if driverId not provided)"
+                },
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "src": [],
+                  "description": "Driver profile photo"
+                },
+                {
+                  "key": "aadharCard",
+                  "type": "file",
+                  "src": [],
+                  "description": "Aadhar Card document"
+                },
+                {
+                  "key": "panCard",
+                  "type": "file",
+                  "src": [],
+                  "description": "PAN Card document"
+                },
+                {
+                  "key": "licenseImage",
+                  "type": "file",
+                  "src": [],
+                  "description": "Driving License image"
+                },
+                {
+                  "key": "policeVerification",
+                  "type": "file",
+                  "src": [],
+                  "description": "Police Verification Certificate"
+                },
+                {
+                  "key": "medicalCertificate",
+                  "type": "file",
+                  "src": [],
+                  "description": "Medical Certificate"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/upload-documents",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "upload-documents"]
+            },
+            "description": "Upload or update driver documents after initial registration. This endpoint allows drivers to upload documents separately if they weren't uploaded during signup.\n\n**Features:**\n- Upload multiple documents in one request\n- Update existing documents\n- Automatic KYC status progression\n- Document validation and storage\n\n**File Requirements:**\n- Formats: JPEG, PNG, PDF\n- Max size: 10MB per file\n- Total files: Up to 6 documents"
+          }
+        },
+        {
+          "name": "Check Document Upload Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.test('Document status retrieved successfully', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.documentsStatus).to.exist;",
+                  "        pm.expect(response.allRequiredUploaded).to.be.a('boolean');",
+                  "    });",
+                  "    pm.test('Document status details provided', function () {",
+                  "        pm.expect(response.requiredDocuments).to.be.an('array');",
+                  "        pm.expect(response.optionalDocuments).to.be.an('array');",
+                  "    });",
+                  "} else {",
+                  "    pm.test('Document status check failed', function () {",
+                  "        pm.expect(responseCode.code).to.not.equal(200);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/documents-status/{{driver_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "documents-status", "{{driver_id}}"]
+            },
+            "description": "Check the upload status of all driver documents. This endpoint provides a comprehensive overview of which documents have been uploaded and which are still pending.\n\n**Response includes:**\n- Individual document upload status\n- Required vs optional documents\n- Overall completion status\n- KYC status information\n- Upload timestamps"
+          }
+        },
+        {
+          "name": "Driver Signup (Basic - No Documents)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('driver_id', response.driver.id);",
+                  "    pm.test('Basic driver registration successful', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.driver).to.exist;",
+                  "        pm.expect(response.driver.kycStatus).to.equal('Pending');",
+                  "        pm.expect(response.pendingApproval).to.be.true;",
+                  "        pm.expect(response.driver.documentsUploaded).to.be.false;",
+                  "    });",
+                  "} else {",
+                  "    pm.test('Basic registration failed', function () {",
+                  "        pm.expect(responseCode.code).to.not.equal(201);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Amit Kumar Sharma",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "amit.driver@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "+919876543220",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "driver123",
+                  "type": "text"
+                },
+                {
+                  "key": "dateOfBirth",
+                  "value": "1988-03-20",
+                  "type": "text"
+                },
+                {
+                  "key": "licenseNumber",
+                  "value": "MH02DL123456789",
+                  "type": "text"
+                },
+                {
+                  "key": "licenseExpiry",
+                  "value": "2029-03-20",
+                  "type": "text"
+                },
+                {
+                  "key": "licenseType",
+                  "value": "Light Motor Vehicle",
+                  "type": "text"
+                },
+                {
+                  "key": "experience",
+                  "value": "5",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/signup",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "signup"]
+            },
+            "description": "Register a new driver with only basic information (no documents). Documents can be uploaded later using the separate upload endpoint.\n\n**Use this for:**\n- Testing basic registration flow\n- Quick driver registration\n- Cases where documents will be uploaded separately\n\n**Note:** Driver can upload documents later using the 'Upload Documents' endpoint."
           }
         },
         {
@@ -404,7 +755,7 @@
           }
         }
       ],
-      "description": "Complete driver authentication system with OTP-based login and secure password reset"
+      "description": "Complete driver authentication system with OTP-based login, secure password reset, and document upload support.\n\n**🔧 TESTING FILE UPLOADS IN POSTMAN:**\n\n1. **Signup with Documents:**\n   - Use 'Driver Signup (with Document Upload)' request\n   - Click on each file field (aadharCard, panCard, etc.)\n   - Select 'Choose Files' and upload actual image/PDF files\n   - Required: JPEG, PNG, or PDF files (max 10MB each)\n\n2. **Basic Signup + Separate Upload:**\n   - Use 'Driver Signup (Basic - No Documents)' first\n   - Then use 'Upload Documents (Separate Endpoint)'\n   - Upload documents one by one or multiple at once\n\n3. **Check Upload Status:**\n   - Use 'Check Document Upload Status' to verify\n   - Shows which documents are uploaded/missing\n   - Displays KYC progression status\n\n4. **File Requirements:**\n   - Aadhar Card: Image of government ID\n   - PAN Card: Image of tax identification\n   - License Image: Photo of driving license\n   - Optional: Police verification, medical certificate\n\n**📁 SAMPLE FILES FOR TESTING:**\n- Create sample JPEG images (100KB - 2MB)\n- Name them: aadhar.jpg, pan.jpg, license.jpg\n- Use actual document scans for real testing\n- PDF format supported for certificates\n\n**🔍 RESPONSE VALIDATION:**\n- Check 'documentsUploaded' field in response\n- Verify 'uploadedDocuments' array lists uploaded files\n- KYC status changes from 'Pending' to 'Under Review'\n- File paths returned for verification"
     },
     {
       "name": "📊 Driver Dashboard",
