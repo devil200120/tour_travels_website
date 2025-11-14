@@ -48,7 +48,7 @@ const driverSchema = new mongoose.Schema({
   },
   licenseType: {
     type: String,
-    enum: ['Light Motor Vehicle', 'Heavy Motor Vehicle', 'Transport Vehicle'],
+    enum: ['Light Motor Vehicle', 'Heavy Motor Vehicle', 'Transport Vehicle', 'LMV', 'HMV', 'TV', 'Two Wheeler', 'Four Wheeler'],
     required: true
   },
   experience: {
@@ -203,5 +203,24 @@ const driverSchema = new mongoose.Schema({
 
 driverSchema.index({ email: 1, phone: 1, licenseNumber: 1 });
 driverSchema.index({ 'currentLocation.latitude': 1, 'currentLocation.longitude': 1 });
+
+// Pre-save middleware to normalize license type
+driverSchema.pre('save', function(next) {
+  if (this.licenseType) {
+    const licenseTypeMap = {
+      'LMV': 'Light Motor Vehicle',
+      'HMV': 'Heavy Motor Vehicle', 
+      'TV': 'Transport Vehicle',
+      'Two Wheeler': 'Two Wheeler',
+      'Four Wheeler': 'Four Wheeler',
+      'Light Motor Vehicle': 'Light Motor Vehicle',
+      'Heavy Motor Vehicle': 'Heavy Motor Vehicle',
+      'Transport Vehicle': 'Transport Vehicle'
+    };
+    
+    this.licenseType = licenseTypeMap[this.licenseType] || this.licenseType;
+  }
+  next();
+});
 
 export default mongoose.model('Driver', driverSchema);

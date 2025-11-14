@@ -1,5 +1,6 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
+import mongoose from 'mongoose';
 import Driver from '../../models/Driver.js';
 import Booking from '../../models/Booking.js';
 import driverAuth from '../../middleware/driverAuth.js';
@@ -9,39 +10,184 @@ const router = express.Router();
 // Apply driver authentication middleware to all routes
 router.use(driverAuth);
 
+// Get Driver's Current Active Trip
+router.get('/current-trip', async (req, res) => {
+    try {
+        const driverId = req.user.id;
+
+        const activeTrip = await Booking.findOne({
+            assignedDriver: driverId,
+            status: { $in: ['Confirmed', 'In Progress'] }
+        })
+        .populate('customer', 'firstName lastName phone email')
+        .populate('packageDetails.packageId', 'name duration');
+
+        if (!activeTrip) {
+            return res.json({
+                success: true,
+                hasActiveTrip: false,
+                trip: null
+            });
+        }
+
+        const tripDetails = {
+            id: activeTrip._id,
+            bookingId: activeTrip.bookingId,
+            status: activeTrip.status,
+            customer: {
+                id: activeTrip.customer?._id,
+                name: activeTrip.customer?.name || `${activeTrip.customer?.firstName || ''} ${activeTrip.customer?.lastName || ''}`.trim() || 'N/A',
+                phone: activeTrip.customer?.phone || 'N/A',
+                email: activeTrip.customer?.email || 'N/A'
+            },
+            package: {
+                id: activeTrip.packageId?._id,
+                name: activeTrip.packageId?.name || activeTrip.packageDetails?.name || 'Custom Trip',
+                duration: activeTrip.packageId?.duration || activeTrip.packageDetails?.duration || 'N/A',
+                vehicleType: activeTrip.packageId?.vehicleType || activeTrip.vehiclePreference || 'Any'
+            },
+            pickup: {
+                address: activeTrip.pickupLocation?.address || activeTrip.pickup?.address || 'N/A',
+                coordinates: activeTrip.pickupLocation?.coordinates || activeTrip.pickup?.coordinates || null,
+                time: activeTrip.pickupTime || activeTrip.schedule?.startDate
+            },
+            dropoff: {
+                address: activeTrip.dropoffLocation?.address || activeTrip.dropoff?.address || 'N/A',
+                coordinates: activeTrip.dropoffLocation?.coordinates || activeTrip.dropoff?.coordinates || null,
+                time: activeTrip.dropoffTime
+            },
+            totalAmount: activeTrip.totalAmount || activeTrip.pricing?.totalAmount || 0,
+            distance: activeTrip.distance || 0,
+            estimatedDuration: activeTrip.duration || activeTrip.estimatedDuration || 0,
+            specialInstructions: activeTrip.specialInstructions || activeTrip.specialRequests || '',
+            paymentStatus: activeTrip.paymentStatus || 'Pending',
+            createdAt: activeTrip.createdAt,
+            acceptedAt: activeTrip.acceptedAt,
+            startTime: activeTrip.startTime,
+            estimatedArrival: activeTrip.estimatedArrival,
+            driverMessage: activeTrip.driverMessage,
+            vehiclePreference: activeTrip.vehiclePreference,
+            tripType: activeTrip.tripType || 'one-way',
+            passengers: activeTrip.passengers || 1
+        };
+
+        res.json({
+            success: true,
+            hasActiveTrip: true,
+            trip: tripDetails
+        });
+
+    } catch (error) {
+        console.error('Get current trip error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch current trip',
+            error: error.message
+        });
+    }
+});
+
 // Get Assigned/Available Orders for Driver
 router.get('/orders', async (req, res) => {
     try {
         const driverId = req.user.id;
-        const { status, page = 1, limit = 10 } = req.query;
+        const { status, page = 1, limit = 10, dateFilter } = req.query;
 
         let query = {};
+
+        // Date filtering logic
+        if (dateFilter && dateFilter !== 'all') {
+            const now = new Date();
+            let startDate, endDate;
+
+            switch (dateFilter.toLowerCase()) {
+                case 'today':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+                    break;
+                case 'week':
+                    const startOfWeek = new Date(now);
+                    startOfWeek.setDate(now.getDate() - now.getDay());
+                    startOfWeek.setHours(0, 0, 0, 0);
+                    startDate = startOfWeek;
+                    endDate = new Date(startOfWeek);
+                    endDate.setDate(startOfWeek.getDate() + 7);
+                    break;
+                case 'month':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+                    break;
+                default:
+                    // No date filter
+                    break;
+            }
+
+            if (startDate && endDate) {
+                query.createdAt = {
+                    $gte: startDate,
+                    $lt: endDate
+                };
+            }
+        }
 
         // Special handling for different status types
         if (status === 'pending' || status === 'Pending') {
             // For pending orders, show both assigned to this driver AND unassigned orders
             query = {
-                status: 'Pending',
+                ...query,
+                status: { $regex: new RegExp(`^pending$`, 'i') }, // Case-insensitive
                 $or: [
                     { assignedDriver: driverId },
                     { assignedDriver: { $exists: false } },
                     { assignedDriver: null }
                 ]
             };
-        } else if (status === 'available') {
-            // Show only unassigned pending orders
+        } else if (status === 'completed' || status === 'Completed') {
+            // For completed trips, show only this driver's completed trips
             query = {
-                status: 'Pending',
+                ...query,
+                assignedDriver: driverId,
+                status: { $regex: new RegExp(`^completed$`, 'i') } // Case-insensitive
+            };
+        } else if (status === 'confirmed' || status === 'Confirmed') {
+            // For confirmed trips, show only this driver's confirmed trips
+            query = {
+                ...query,
+                assignedDriver: driverId,
+                status: { $regex: new RegExp(`^confirmed$`, 'i') } // Case-insensitive
+            };
+        } else if (status === 'cancelled' || status === 'Cancelled') {
+            // For cancelled trips, show only this driver's cancelled trips
+            query = {
+                ...query,
+                assignedDriver: driverId,
+                status: { $regex: new RegExp(`^cancelled$`, 'i') } // Case-insensitive
+            };
+        } else if (status === 'available') {
+            // Show only unassigned pending orders that haven't been rejected by this driver
+            query = {
+                ...query,
+                status: { $regex: new RegExp(`^pending$`, 'i') }, // Case-insensitive
                 $or: [
                     { assignedDriver: { $exists: false } },
                     { assignedDriver: null }
+                ],
+                // Exclude orders that have been rejected by this driver
+                $and: [
+                    {
+                        $or: [
+                            { rejectedBy: { $exists: false } },
+                            { rejectedBy: { $size: 0 } },
+                            { 'rejectedBy.driverId': { $ne: new mongoose.Types.ObjectId(driverId) } }
+                        ]
+                    }
                 ]
             };
         } else {
             // For all other statuses, show only orders assigned to this driver
-            query = { assignedDriver: driverId };
+            query = { ...query, assignedDriver: driverId };
             if (status) {
-                query.status = status;
+                query.status = { $regex: new RegExp(`^${status}$`, 'i') }; // Case-insensitive
             }
         }
 
@@ -63,6 +209,17 @@ router.get('/orders', async (req, res) => {
         console.log('Total orders found:', totalOrders);
         console.log('Orders returned:', orders.length);
 
+        // Debug rejection data
+        if (status === 'available') {
+            console.log('🚫 Rejected Orders Debug:');
+            for (const order of orders) {
+                console.log(`Order ${order.bookingId}:`, {
+                    rejectedBy: order.rejectedBy,
+                    isRejectedByCurrentDriver: order.rejectedBy?.some(r => r.driverId?.toString() === driverId.toString())
+                });
+            }
+        }
+
         const ordersWithDetails = orders.map(order => ({
             id: order._id,
             bookingId: order.bookingId,
@@ -81,26 +238,42 @@ router.get('/orders', async (req, res) => {
             pickup: {
                 address: order.pickupLocation?.address || order.pickup?.address || 'N/A',
                 coordinates: order.pickupLocation?.coordinates || order.pickup?.coordinates || null,
-                time: order.pickupTime || order.schedule?.startDate
+                time: order.pickupTime || order.schedule?.startDate,
+                landmark: order.pickup?.landmark || order.pickupLocation?.landmark
             },
             dropoff: {
                 address: order.dropoffLocation?.address || order.dropoff?.address || 'N/A',
                 coordinates: order.dropoffLocation?.coordinates || order.dropoff?.coordinates || null,
-                time: order.dropoffTime
+                time: order.dropoffTime,
+                landmark: order.dropoff?.landmark || order.dropoffLocation?.landmark
             },
             status: order.status,
             totalAmount: order.totalAmount || order.pricing?.totalAmount || 0,
-            distance: order.distance || 0,
+            distance: order.distance || order.actualDistance || 0,
             estimatedDuration: order.duration || order.estimatedDuration || 0,
+            actualDuration: order.actualDuration || Math.round((new Date(order.endTime) - new Date(order.startTime)) / (1000 * 60)) || 0,
             specialInstructions: order.specialInstructions || order.specialRequests || '',
             paymentStatus: order.paymentStatus || 'Pending',
             createdAt: order.createdAt,
+            bookingTime: order.createdAt, // For UI compatibility
             pickupTime: order.pickupTime || order.schedule?.startDate,
-            assignedAt: order.updatedAt,
+            assignedAt: order.acceptedAt || order.updatedAt,
+            startTime: order.startTime,
+            endTime: order.endTime,
+            completedAt: order.tripDetails?.completedAt || order.endTime,
             assignedDriver: order.assignedDriver,
             vehiclePreference: order.vehiclePreference,
             tripType: order.tripType || 'one-way',
-            passengers: order.passengers || 1
+            passengers: order.passengers || 1,
+            notes: order.tripSummary || order.notes || '',
+            cancellationReason: order.cancellationReason,
+            earnings: order.status?.toLowerCase() === 'completed' ? (order.totalAmount || 0) : 0,
+            tripDetails: {
+                startOdometerReading: order.startOdometerReading,
+                endOdometerReading: order.endOdometerReading,
+                actualDistance: order.actualDistance,
+                routeTracking: order.routeTracking?.length || 0
+            }
         }));
 
         res.json({
@@ -132,16 +305,19 @@ router.get('/orders', async (req, res) => {
 // Get Available Orders (not assigned to any driver)
 router.get('/orders/available', async (req, res) => {
     try {
+        const driverId = req.user.id;
         const { page = 1, limit = 10, vehicleType } = req.query;
 
         // Debug: Check all pending orders
-        const allPendingOrders = await Booking.find({ status: 'Pending' }).select('bookingId status assignedDriver');
+        const allPendingOrders = await Booking.find({ status: 'Pending' }).select('bookingId status assignedDriver rejectedBy');
         console.log('🔍 Debug Available Orders:');
+        console.log('Current Driver ID:', driverId);
         console.log('Total Pending Orders:', allPendingOrders.length);
         console.log('Pending Orders:', allPendingOrders.map(o => ({
             bookingId: o.bookingId,
             status: o.status,
-            assignedDriver: o.assignedDriver
+            assignedDriver: o.assignedDriver,
+            rejectedByCurrentDriver: o.rejectedBy?.some(r => r.driverId?.toString() === driverId.toString())
         })));
 
         const query = {
@@ -149,12 +325,24 @@ router.get('/orders/available', async (req, res) => {
             $or: [
                 { assignedDriver: { $exists: false } },
                 { assignedDriver: null }
+            ],
+            // Exclude orders that have been rejected by this driver
+            $and: [
+                {
+                    $or: [
+                        { rejectedBy: { $exists: false } },
+                        { rejectedBy: { $size: 0 } },
+                        { 'rejectedBy.driverId': { $ne: driverId } }
+                    ]
+                }
             ]
         };
 
         if (vehicleType) {
             query.vehiclePreference = vehicleType;
         }
+
+        console.log('🔍 Available Orders Query:', JSON.stringify(query, null, 2));
 
         const orders = await Booking.find(query)
             .populate('customer', 'firstName lastName phone')
@@ -164,6 +352,10 @@ router.get('/orders/available', async (req, res) => {
             .skip((page - 1) * limit);
 
         const totalOrders = await Booking.countDocuments(query);
+
+        console.log('📊 Available Orders Results:');
+        console.log('Total available orders:', totalOrders);
+        console.log('Orders returned:', orders.length);
 
         const availableOrders = orders.map(order => ({
             id: order._id,
@@ -360,7 +552,17 @@ router.post('/orders/:orderId/reject', async (req, res) => {
             reason: reason || 'No reason provided',
             rejectedAt: new Date()
         });
+        
+        console.log(`🚫 REJECTION DEBUG:`, {
+            orderId: orderId,
+            driverId: driverId,
+            rejectedByArray: order.rejectedBy,
+            reason: reason
+        });
+        
         await order.save();
+
+        console.log(`✅ Order ${orderId} rejected and saved to database`);
 
         // Here you can add auto-reassignment logic
         
@@ -488,6 +690,14 @@ router.post('/orders/:orderId/complete', async (req, res) => {
         // Update order completion details
         order.status = 'Completed';
         order.endTime = endTime;
+        
+        // Initialize tripDetails if it doesn't exist
+        if (!order.tripDetails) {
+            order.tripDetails = {};
+        }
+        order.tripDetails.completedAt = endTime; // Correct field path
+        order.tripDetails.endTime = endTime;
+        
         order.endLocation = endLocation;
         order.endOdometerReading = odometerReading;
         order.actualDistance = finalActualDistance;
@@ -705,13 +915,50 @@ router.get('/orders/:orderId/navigation', async (req, res) => {
         }
 
         // Get pickup and dropoff coordinates
-        const pickup = order.pickupLocation?.coordinates;
-        const dropoff = order.dropoffLocation?.coordinates;
+        let pickup = order.pickupLocation?.coordinates || order.pickup?.coordinates;
+        let dropoff = order.dropoffLocation?.coordinates || order.dropoff?.coordinates;
+        
+        // If coordinates are missing, try to geocode from addresses
+        if (!pickup && (order.pickupLocation?.address || order.pickup?.address)) {
+            try {
+                const pickupAddress = order.pickupLocation?.address || order.pickup?.address;
+                console.log('🔍 Geocoding pickup address:', pickupAddress);
+                const geocodeResult = await googleMapsService.geocodeAddress(pickupAddress);
+                console.log('🔍 Pickup geocode result:', geocodeResult);
+                if (geocodeResult && geocodeResult.latitude && geocodeResult.longitude) {
+                    pickup = [geocodeResult.longitude, geocodeResult.latitude];
+                    console.log('✅ Pickup coordinates geocoded:', pickup);
+                }
+            } catch (e) {
+                console.warn('❌ Failed to geocode pickup address:', e.message);
+            }
+        }
+        
+        if (!dropoff && (order.dropoffLocation?.address || order.dropoff?.address)) {
+            try {
+                const dropoffAddress = order.dropoffLocation?.address || order.dropoff?.address;
+                console.log('🔍 Geocoding dropoff address:', dropoffAddress);
+                const geocodeResult = await googleMapsService.geocodeAddress(dropoffAddress);
+                console.log('🔍 Dropoff geocode result:', geocodeResult);
+                if (geocodeResult && geocodeResult.latitude && geocodeResult.longitude) {
+                    dropoff = [geocodeResult.longitude, geocodeResult.latitude];
+                    console.log('✅ Dropoff coordinates geocoded:', dropoff);
+                }
+            } catch (e) {
+                console.warn('❌ Failed to geocode dropoff address:', e.message);
+            }
+        }
         
         if (!pickup || !dropoff) {
             return res.status(400).json({
                 success: false,
-                message: 'Pickup or dropoff coordinates not available'
+                message: 'Pickup or dropoff coordinates not available',
+                debug: {
+                    pickup: pickup,
+                    dropoff: dropoff,
+                    pickupAddress: order.pickupLocation?.address || order.pickup?.address,
+                    dropoffAddress: order.dropoffLocation?.address || order.dropoff?.address
+                }
             });
         }
 

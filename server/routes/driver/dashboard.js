@@ -18,24 +18,27 @@ router.get('/overview', async (req, res) => {
         // Get driver details
         const driver = await Driver.findById(driverId).select('-password');
         
-        // Today's trips
+        // Today's trips - check multiple completion date fields (case-insensitive status)
         const todayTrips = await Booking.find({
             assignedDriver: driverId,
+            status: { $regex: /^completed$/i }, // Case-insensitive match
             $or: [
-                { createdAt: { $gte: startOfDay, $lt: endOfDay } },
+                { completedAt: { $gte: startOfDay, $lt: endOfDay } },
+                { 'tripDetails.completedAt': { $gte: startOfDay, $lt: endOfDay } },
+                { 'tripDetails.endTime': { $gte: startOfDay, $lt: endOfDay } },
                 { endTime: { $gte: startOfDay, $lt: endOfDay } }
             ]
         });
 
-        // Calculate today's stats
-        const completedTrips = todayTrips.filter(trip => trip.status === 'Completed');
-        const pendingTrips = todayTrips.filter(trip => trip.status === 'Pending');
-        const confirmedTrips = todayTrips.filter(trip => trip.status === 'Confirmed');
-        const cancelledTrips = todayTrips.filter(trip => trip.status === 'Cancelled');
+        // Calculate today's stats (case-insensitive status)
+        const completedTrips = todayTrips.filter(trip => trip.status.toLowerCase() === 'completed');
+        const pendingTrips = todayTrips.filter(trip => trip.status.toLowerCase() === 'pending');
+        const confirmedTrips = todayTrips.filter(trip => trip.status.toLowerCase() === 'confirmed');
+        const cancelledTrips = todayTrips.filter(trip => trip.status.toLowerCase() === 'cancelled');
 
         // Calculate today's earnings
         const todayEarnings = completedTrips.reduce((total, trip) => {
-            return total + (trip.totalAmount || 0);
+            return total + (trip.pricing?.totalAmount || trip.totalAmount || 0);
         }, 0);
 
         // Calculate today's distance
@@ -56,23 +59,55 @@ router.get('/overview', async (req, res) => {
 
         const weekTrips = await Booking.find({
             assignedDriver: driverId,
-            createdAt: { $gte: startOfWeek, $lt: endOfDay }
+            status: { $regex: /^completed$/i },
+            $or: [
+                { completedAt: { $gte: startOfWeek, $lt: endOfDay } },
+                { 'tripDetails.completedAt': { $gte: startOfWeek, $lt: endOfDay } },
+                { 'tripDetails.endTime': { $gte: startOfWeek, $lt: endOfDay } },
+                { endTime: { $gte: startOfWeek, $lt: endOfDay } }
+            ]
         });
 
         const weekEarnings = weekTrips
             .filter(trip => trip.status === 'Completed')
-            .reduce((total, trip) => total + (trip.totalAmount || 0), 0);
+            .reduce((total, trip) => total + (trip.pricing?.totalAmount || trip.totalAmount || 0), 0);
 
         // This month's stats
         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         const monthTrips = await Booking.find({
             assignedDriver: driverId,
-            createdAt: { $gte: startOfMonth, $lt: endOfDay }
+            status: { $regex: /^completed$/i },
+            $or: [
+                { completedAt: { $gte: startOfMonth, $lt: endOfDay } },
+                { 'tripDetails.completedAt': { $gte: startOfMonth, $lt: endOfDay } },
+                { 'tripDetails.endTime': { $gte: startOfMonth, $lt: endOfDay } },
+                { endTime: { $gte: startOfMonth, $lt: endOfDay } }
+            ]
         });
 
         const monthEarnings = monthTrips
-            .filter(trip => trip.status === 'Completed')
-            .reduce((total, trip) => total + (trip.totalAmount || 0), 0);
+            .filter(trip => trip.status.toLowerCase() === 'completed')
+            .reduce((total, trip) => total + (trip.pricing?.totalAmount || trip.totalAmount || 0), 0);
+
+        // Overall stats - get all completed trips for this driver
+        const allCompletedTrips = await Booking.find({
+            assignedDriver: driverId,
+            status: 'Completed'
+        });
+
+        const overallTrips = allCompletedTrips.length;
+        const overallEarnings = allCompletedTrips.reduce((total, trip) => 
+            total + (trip.pricing?.totalAmount || trip.totalAmount || 0), 0
+        );
+        const overallDistance = allCompletedTrips.reduce((total, trip) => 
+            total + (trip.distance || 0), 0
+        );
+
+        // Overall rating calculation
+        const allRatedTrips = allCompletedTrips.filter(trip => trip.rating && trip.rating > 0);
+        const overallRating = allRatedTrips.length > 0 
+            ? allRatedTrips.reduce((sum, trip) => sum + trip.rating, 0) / allRatedTrips.length 
+            : 0;
 
         res.json({
             success: true,
@@ -105,10 +140,13 @@ router.get('/overview', async (req, res) => {
                     totalEarnings: monthEarnings
                 },
                 overall: {
-                    totalTrips: driver.totalTrips || 0,
-                    totalEarnings: driver.totalEarnings || 0,
-                    totalDistance: driver.totalDistance || 0,
-                    rating: driver.rating || { average: 0, count: 0 }
+                    totalTrips: overallTrips,
+                    totalEarnings: overallEarnings,
+                    totalDistance: overallDistance,
+                    rating: { 
+                        average: parseFloat(overallRating.toFixed(1)), 
+                        count: allRatedTrips.length 
+                    }
                 }
             }
         });
@@ -136,14 +174,26 @@ router.get('/today-rides', async (req, res) => {
         console.log('Start of day:', startOfDay);
         console.log('End of day:', endOfDay);
 
-        // Query using assignedDriver field and check both creation date and completion date
+        // Get ALL rides assigned to this driver for today (created today OR assigned today OR scheduled for today)
         const todayRides = await Booking.find({
             $and: [
                 { assignedDriver: driverId },
                 {
                     $or: [
+                        // Rides created today
                         { createdAt: { $gte: startOfDay, $lt: endOfDay } },
-                        { endTime: { $gte: startOfDay, $lt: endOfDay } }
+                        // Rides scheduled/pickup for today
+                        { 'schedule.startDate': { $gte: startOfDay, $lt: endOfDay } },
+                        { pickupTime: { $gte: startOfDay, $lt: endOfDay } },
+                        // Rides completed today (for historical view)
+                        { 
+                            status: { $regex: /^completed$/i },
+                            $or: [
+                                { completedAt: { $gte: startOfDay, $lt: endOfDay } },
+                                { endTime: { $gte: startOfDay, $lt: endOfDay } },
+                                { 'tripDetails.completedAt': { $gte: startOfDay, $lt: endOfDay } }
+                            ]
+                        }
                     ]
                 }
             ]
@@ -177,7 +227,7 @@ router.get('/today-rides', async (req, res) => {
                 time: ride.dropoffTime
             },
             status: ride.status,
-            totalAmount: ride.totalAmount || ride.pricing?.totalAmount || 0,
+            totalAmount: ride.pricing?.totalAmount || ride.totalAmount || 0,
             distance: ride.actualDistance || ride.distance || 0,
             duration: ride.duration || 0,
             rating: ride.customerRating || ride.rating || null,
@@ -195,11 +245,11 @@ router.get('/today-rides', async (req, res) => {
             rides: ridesWithDetails,
             summary: {
                 total: todayRides.length,
-                completed: todayRides.filter(r => r.status === 'Completed').length,
-                pending: todayRides.filter(r => r.status === 'Pending').length,
-                confirmed: todayRides.filter(r => r.status === 'Confirmed').length,
-                inProgress: todayRides.filter(r => r.status === 'In Progress').length,
-                cancelled: todayRides.filter(r => r.status === 'Cancelled').length
+                completed: todayRides.filter(r => r.status.toLowerCase() === 'completed').length,
+                pending: todayRides.filter(r => r.status.toLowerCase() === 'pending').length,
+                confirmed: todayRides.filter(r => r.status.toLowerCase() === 'confirmed').length,
+                inProgress: todayRides.filter(r => r.status.toLowerCase() === 'in progress').length,
+                cancelled: todayRides.filter(r => r.status.toLowerCase() === 'cancelled').length
             },
             debug: {
                 query: {
@@ -365,30 +415,34 @@ router.get('/weekly-performance', async (req, res) => {
         const previousWeekEnd = new Date(currentWeekEnd);
         previousWeekEnd.setDate(currentWeekEnd.getDate() - 7);
         
-        // Get current week trips
+        // Get current week trips (case-insensitive status, multiple completion date fields)
         const currentWeekTrips = await Booking.find({
             assignedDriver: driverId,
-            status: 'Completed',
-            completedAt: {
-                $gte: currentWeekStart,
-                $lte: currentWeekEnd
-            }
+            status: { $regex: /^completed$/i },
+            $or: [
+                { completedAt: { $gte: currentWeekStart, $lte: currentWeekEnd } },
+                { 'tripDetails.completedAt': { $gte: currentWeekStart, $lte: currentWeekEnd } },
+                { 'tripDetails.endTime': { $gte: currentWeekStart, $lte: currentWeekEnd } },
+                { endTime: { $gte: currentWeekStart, $lte: currentWeekEnd } }
+            ]
         });
         
-        // Get previous week trips
+        // Get previous week trips (case-insensitive status, multiple completion date fields)
         const previousWeekTrips = await Booking.find({
             assignedDriver: driverId,
-            status: 'Completed',
-            completedAt: {
-                $gte: previousWeekStart,
-                $lte: previousWeekEnd
-            }
+            status: { $regex: /^completed$/i },
+            $or: [
+                { completedAt: { $gte: previousWeekStart, $lte: previousWeekEnd } },
+                { 'tripDetails.completedAt': { $gte: previousWeekStart, $lte: previousWeekEnd } },
+                { 'tripDetails.endTime': { $gte: previousWeekStart, $lte: previousWeekEnd } },
+                { endTime: { $gte: previousWeekStart, $lte: previousWeekEnd } }
+            ]
         });
         
         // Calculate current week stats
         const currentWeekStats = {
             trips: currentWeekTrips.length,
-            earnings: currentWeekTrips.reduce((sum, trip) => sum + (trip.driverEarnings || trip.totalAmount || 0), 0),
+            earnings: currentWeekTrips.reduce((sum, trip) => sum + (trip.pricing?.totalAmount || trip.driverEarnings || trip.totalAmount || 0), 0),
             distance: currentWeekTrips.reduce((sum, trip) => sum + (trip.actualDistance || trip.distance || 0), 0),
             duration: currentWeekTrips.reduce((sum, trip) => sum + (trip.duration || 0), 0),
             ratings: currentWeekTrips.filter(trip => trip.customerRating && trip.customerRating > 0),
@@ -403,7 +457,7 @@ router.get('/weekly-performance', async (req, res) => {
         // Calculate previous week stats
         const previousWeekStats = {
             trips: previousWeekTrips.length,
-            earnings: previousWeekTrips.reduce((sum, trip) => sum + (trip.driverEarnings || trip.totalAmount || 0), 0),
+            earnings: previousWeekTrips.reduce((sum, trip) => sum + (trip.pricing?.totalAmount || trip.driverEarnings || trip.totalAmount || 0), 0),
             distance: previousWeekTrips.reduce((sum, trip) => sum + (trip.actualDistance || trip.distance || 0), 0),
             duration: previousWeekTrips.reduce((sum, trip) => sum + (trip.duration || 0), 0)
         };
@@ -428,15 +482,19 @@ router.get('/weekly-performance', async (req, res) => {
             date.setDate(currentWeekStart.getDate() + i);
             
             const dayTrips = currentWeekTrips.filter(trip => {
-                const tripDate = new Date(trip.completedAt);
-                return tripDate.toDateString() === date.toDateString();
+                // Check multiple completion date fields
+                const tripDate = trip.completedAt || trip.tripDetails?.completedAt || trip.tripDetails?.endTime || trip.endTime;
+                if (!tripDate) return false;
+                
+                const completionDate = new Date(tripDate);
+                return completionDate.toDateString() === date.toDateString();
             });
             
             dailyBreakdown.push({
                 date: date.toISOString().split('T')[0],
                 dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
                 trips: dayTrips.length,
-                earnings: Math.round(dayTrips.reduce((sum, trip) => sum + (trip.driverEarnings || trip.totalAmount || 0), 0) * 100) / 100,
+                earnings: Math.round(dayTrips.reduce((sum, trip) => sum + (trip.pricing?.totalAmount || trip.driverEarnings || trip.totalAmount || 0), 0) * 100) / 100,
                 distance: Math.round(dayTrips.reduce((sum, trip) => sum + (trip.actualDistance || trip.distance || 0), 0) * 100) / 100,
                 duration: dayTrips.reduce((sum, trip) => sum + (trip.duration || 0), 0)
             });

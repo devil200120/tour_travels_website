@@ -269,6 +269,109 @@ router.get('/customers',
   }
 );
 
+// Create new customer
+router.post('/customers',
+  authenticateToken,
+  checkPermission('users', 'create'),
+  [
+    body('name').trim().isLength({ min: 2 }),
+    body('email').isEmail().normalizeEmail(),
+    body('phone').trim().isLength({ min: 10 }),
+    body('isVerified').optional().isBoolean()
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      // Check if customer already exists
+      const existingCustomer = await Customer.findOne({
+        $or: [
+          { email: req.body.email },
+          { phone: req.body.phone }
+        ]
+      });
+
+      if (existingCustomer) {
+        return res.status(409).json({ 
+          message: 'Customer already exists with this email or phone' 
+        });
+      }
+
+      // Split name into firstName and lastName
+      const nameParts = req.body.name.trim().split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ') || firstName;
+
+      // Format phone number to match validation pattern
+      let formattedPhone = req.body.phone.replace(/\D/g, ''); // Remove non-digits
+      if (formattedPhone.length === 10 && !formattedPhone.startsWith('91')) {
+        formattedPhone = '+91' + formattedPhone; // Add country code for Indian numbers
+      } else if (formattedPhone.length === 12 && formattedPhone.startsWith('91')) {
+        formattedPhone = '+' + formattedPhone;
+      } else if (!formattedPhone.startsWith('+')) {
+        formattedPhone = '+91' + formattedPhone.slice(-10); // Take last 10 digits and add +91
+      }
+
+      const customerData = {
+        firstName,
+        lastName,
+        email: req.body.email,
+        phone: formattedPhone,
+        password: '$2a$12$defaultHashForAdminCreatedCustomers', // Default hashed password for admin-created customers
+        isPhoneVerified: req.body.isVerified || true,
+        isEmailVerified: req.body.isVerified || true,
+        registrationDate: new Date(),
+        lastLoginDate: null,
+        totalBookings: 0,
+        totalSpent: 0,
+        preferences: {
+          notifications: {
+            email: true,
+            sms: true,
+            push: true
+          },
+          language: 'en',
+          currency: 'INR'
+        },
+        addresses: [],
+        paymentPreferences: {
+          preferredMethod: 'UPI',
+          savedCards: [],
+          walletBalance: 0,
+          loyaltyPoints: 0
+        },
+        emergencyContacts: [],
+        documents: {
+          aadhaar: { verified: false },
+          pan: { verified: false },
+          passport: { verified: false }
+        },
+        tripHistory: [],
+        reviews: [],
+        isActive: true
+      };
+
+      const customer = new Customer(customerData);
+      await customer.save();
+
+      // Remove password from response
+      const customerResponse = customer.toObject();
+      delete customerResponse.password;
+
+      res.status(201).json({
+        message: 'Customer created successfully',
+        customer: customerResponse
+      });
+    } catch (error) {
+      console.error('Create customer error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
 // Get customer by ID
 router.get('/customers/:id',
   authenticateToken,

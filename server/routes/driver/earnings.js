@@ -34,7 +34,7 @@ router.get('/today', async (req, res) => {
         console.log('Today\'s trips found:', todayTrips.length);
 
         // Calculate earnings
-        const grossEarnings = todayTrips.reduce((sum, trip) => sum + (trip.totalAmount || 0), 0);
+        const grossEarnings = todayTrips.reduce((sum, trip) => sum + (trip.pricing?.totalAmount || trip.totalAmount || 0), 0);
         const commission = grossEarnings * 0.15; // 15% platform commission
         const netEarnings = grossEarnings - commission;
 
@@ -58,13 +58,13 @@ router.get('/today', async (req, res) => {
             },
             pickup: trip.pickup?.address || trip.pickupLocation?.address || 'N/A',
             dropoff: trip.dropoff?.address || trip.dropoffLocation?.address || 'N/A',
-            amount: trip.totalAmount || 0,
+            amount: trip.pricing?.totalAmount || trip.totalAmount || 0,
             distance: trip.actualDistance || trip.distance || 0,
             duration: trip.duration || 0,
             startTime: trip.startTime,
             endTime: trip.endTime,
-            commission: (trip.totalAmount || 0) * 0.15,
-            netAmount: (trip.totalAmount || 0) * 0.85
+            commission: (trip.pricing?.totalAmount || trip.totalAmount || 0) * 0.15,
+            netAmount: (trip.pricing?.totalAmount || trip.totalAmount || 0) * 0.85
         }));
 
         res.json({
@@ -91,7 +91,7 @@ router.get('/today', async (req, res) => {
                     pickup: trip.pickup?.address || trip.pickupLocation?.address || 'N/A',
                     dropoff: trip.dropoff?.address || trip.dropoffLocation?.address || 'N/A',
                     startTime: trip.startTime,
-                    estimatedAmount: trip.totalAmount || 0
+                    estimatedAmount: trip.pricing?.totalAmount || trip.totalAmount || 0
                 })),
                 date: today.toISOString().split('T')[0]
             }
@@ -127,7 +127,7 @@ router.get('/week', async (req, res) => {
             }
         }).populate('customer', 'firstName lastName phone');
 
-        const grossEarnings = weekTrips.reduce((sum, trip) => sum + (trip.totalAmount || 0), 0);
+        const grossEarnings = weekTrips.reduce((sum, trip) => sum + (trip.pricing?.totalAmount || trip.totalAmount || 0), 0);
         const commission = grossEarnings * 0.15;
         const netEarnings = grossEarnings - commission;
 
@@ -173,7 +173,7 @@ router.get('/month', async (req, res) => {
             }
         }).populate('customer', 'firstName lastName phone');
 
-        const grossEarnings = monthTrips.reduce((sum, trip) => sum + (trip.totalAmount || 0), 0);
+        const grossEarnings = monthTrips.reduce((sum, trip) => sum + (trip.pricing?.totalAmount || trip.totalAmount || 0), 0);
         const commission = grossEarnings * 0.15;
         const netEarnings = grossEarnings - commission;
 
@@ -216,38 +216,41 @@ router.get('/earnings-overview', async (req, res) => {
         // Get driver details
         const driver = await Driver.findById(driverId).select('totalEarnings earningsHistory');
 
-        // Get completed bookings for calculations
+        // Get completed bookings for calculations (case-insensitive status)
         const allCompletedTrips = await Booking.find({
             assignedDriver: driverId,
-            status: 'Completed'
+            status: { $regex: /^completed$/i }
         }).sort({ endTime: -1 });
 
-        // Today's earnings
-        const todayTrips = allCompletedTrips.filter(trip => 
-            trip.endTime >= startOfDay
-        );
-        const todayEarnings = todayTrips.reduce((sum, trip) => sum + (trip.totalAmount || 0), 0);
+        // Today's earnings (check multiple completion date fields)
+        const todayTrips = allCompletedTrips.filter(trip => {
+            const completionDate = trip.completedAt || trip.tripDetails?.completedAt || trip.tripDetails?.endTime || trip.endTime;
+            return completionDate && new Date(completionDate) >= startOfDay;
+        });
+        const todayEarnings = todayTrips.reduce((sum, trip) => sum + (trip.pricing?.totalAmount || trip.totalAmount || 0), 0);
         const todayCommission = todayEarnings * 0.15; // 15% commission
         const todayNetEarnings = todayEarnings - todayCommission;
 
-        // This week's earnings
-        const weekTrips = allCompletedTrips.filter(trip => 
-            trip.endTime >= startOfWeek
-        );
-        const weekEarnings = weekTrips.reduce((sum, trip) => sum + (trip.totalAmount || 0), 0);
+        // This week's earnings (check multiple completion date fields)
+        const weekTrips = allCompletedTrips.filter(trip => {
+            const completionDate = trip.completedAt || trip.tripDetails?.completedAt || trip.tripDetails?.endTime || trip.endTime;
+            return completionDate && new Date(completionDate) >= startOfWeek;
+        });
+        const weekEarnings = weekTrips.reduce((sum, trip) => sum + (trip.pricing?.totalAmount || trip.totalAmount || 0), 0);
         const weekCommission = weekEarnings * 0.15;
         const weekNetEarnings = weekEarnings - weekCommission;
 
-        // This month's earnings
-        const monthTrips = allCompletedTrips.filter(trip => 
-            trip.endTime >= startOfMonth
-        );
-        const monthEarnings = monthTrips.reduce((sum, trip) => sum + (trip.totalAmount || 0), 0);
+        // This month's earnings (check multiple completion date fields)
+        const monthTrips = allCompletedTrips.filter(trip => {
+            const completionDate = trip.completedAt || trip.tripDetails?.completedAt || trip.tripDetails?.endTime || trip.endTime;
+            return completionDate && new Date(completionDate) >= startOfMonth;
+        });
+        const monthEarnings = monthTrips.reduce((sum, trip) => sum + (trip.pricing?.totalAmount || trip.totalAmount || 0), 0);
         const monthCommission = monthEarnings * 0.15;
         const monthNetEarnings = monthEarnings - monthCommission;
 
         // Total earnings
-        const totalGrossEarnings = allCompletedTrips.reduce((sum, trip) => sum + (trip.totalAmount || 0), 0);
+        const totalGrossEarnings = allCompletedTrips.reduce((sum, trip) => sum + (trip.pricing?.totalAmount || trip.totalAmount || 0), 0);
         const totalCommission = totalGrossEarnings * 0.15;
         const totalNetEarnings = totalGrossEarnings - totalCommission;
 
@@ -321,7 +324,7 @@ router.get('/earnings-history', async (req, res) => {
 
         // Get completed trips
         const trips = await Booking.find(bookingQuery)
-            .populate('customerId', 'name phone')
+            .populate('customer', 'firstName lastName phone')
             .sort({ endTime: -1 })
             .limit(limit * 1)
             .skip((page - 1) * limit);
@@ -330,7 +333,7 @@ router.get('/earnings-history', async (req, res) => {
 
         // Format earnings history
         const earningsHistory = trips.map(trip => {
-            const grossAmount = trip.totalAmount || 0;
+            const grossAmount = trip.pricing?.totalAmount || trip.totalAmount || 0;
             const commission = grossAmount * 0.15;
             const netAmount = grossAmount - commission;
 
@@ -339,8 +342,8 @@ router.get('/earnings-history', async (req, res) => {
                 type: 'trip',
                 bookingId: trip.bookingId,
                 customer: {
-                    name: trip.customerId?.name || 'N/A',
-                    phone: trip.customerId?.phone || 'N/A'
+                    name: trip.customer ? `${trip.customer.firstName || ''} ${trip.customer.lastName || ''}`.trim() : 'N/A',
+                    phone: trip.customer?.phone || 'N/A'
                 },
                 grossAmount: parseFloat(grossAmount.toFixed(2)),
                 commission: parseFloat(commission.toFixed(2)),
@@ -348,8 +351,8 @@ router.get('/earnings-history', async (req, res) => {
                 distance: trip.actualDistance || trip.distance || 0,
                 duration: trip.duration || 0,
                 date: trip.endTime || trip.updatedAt,
-                pickup: trip.pickupLocation?.address || 'N/A',
-                dropoff: trip.dropoffLocation?.address || 'N/A'
+                pickup: trip.pickup?.address || trip.pickupLocation?.address || 'N/A',
+                dropoff: trip.dropoff?.address || trip.dropoffLocation?.address || 'N/A'
             };
         });
 

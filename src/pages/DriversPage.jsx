@@ -18,6 +18,8 @@ import {
   XCircle,
   AlertCircle,
   Users,
+  FileText,
+  Download,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { driversService } from "../services/api";
@@ -48,34 +50,35 @@ const DriversPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
   const [editFormData, setEditFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    experience: '',
-    licenseNumber: '',
-    address: '',
-    emergencyContactName: '',
-    emergencyContactPhone: '',
-    kycStatus: 'Pending',
+    name: "",
+    email: "",
+    phone: "",
+    experience: "",
+    licenseNumber: "",
+    address: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    kycStatus: "Pending",
     isActive: true,
-    notes: ''
+    notes: "",
   });
   const [addFormData, setAddFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    experience: '',
-    licenseNumber: '',
-    address: '',
-    emergencyContactName: '',
-    emergencyContactPhone: '',
-    password: '',
-    confirmPassword: '',
-    kycStatus: 'Pending',
+    name: "",
+    email: "",
+    phone: "",
+    experience: "",
+    licenseNumber: "",
+    address: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    password: "",
+    confirmPassword: "",
+    kycStatus: "Pending",
     isActive: true,
-    notes: ''
+    notes: "",
   });
 
   // Fetch drivers from API
@@ -139,13 +142,22 @@ const DriversPage = () => {
 
   const handleToggleAvailability = async (driverId, isAvailable) => {
     try {
-      await driversService.toggleAvailability(driverId, isAvailable, 'Admin action');
+      await driversService.toggleAvailability(
+        driverId,
+        isAvailable,
+        "Admin action"
+      );
       fetchDrivers(pagination.page);
       fetchStats();
-      toast.success(`Driver availability ${isAvailable ? 'enabled' : 'disabled'} successfully`, {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      toast.success(
+        `Driver availability ${
+          isAvailable ? "enabled" : "disabled"
+        } successfully`,
+        {
+          position: "top-right",
+          autoClose: 3000,
+        }
+      );
     } catch (err) {
       console.error("Error toggling availability:", err);
       toast.error("Failed to update driver availability", {
@@ -169,12 +181,85 @@ const DriversPage = () => {
     }
   };
 
+  const handleViewDocuments = async (driverId) => {
+    try {
+      setLoading(true);
+
+      const response = await driversService.getById(driverId);
+      console.log("Driver data received:", response); // Debug log
+
+      // The API returns { driver, vehicles, recentBookings }
+      const driverData = response.driver || response;
+      setSelectedDriver(driverData);
+      setShowDocumentsModal(true);
+    } catch (err) {
+      console.error("Error fetching driver documents:", err);
+      toast.error("Failed to load driver documents", {
+        position: "top-right",
+        autoClose: 4000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKycUpdate = async (driverId, status) => {
+    try {
+      setLoading(true);
+
+      // Use the existing driversService for consistency
+      const result = await driversService.updateKyc(
+        driverId,
+        status.charAt(0).toUpperCase() + status.slice(1),
+        `KYC status updated to ${status} by admin`
+      );
+
+      // Update the driver in the local state
+      setDrivers((prevDrivers) =>
+        prevDrivers.map((driver) =>
+          driver._id === driverId
+            ? { ...driver, kycStatus: result.driver.kycStatus }
+            : driver
+        )
+      );
+
+      // Update selectedDriver if it's the same driver
+      if (selectedDriver && selectedDriver._id === driverId) {
+        setSelectedDriver((prev) => ({
+          ...prev,
+          kycStatus: result.driver.kycStatus,
+        }));
+      }
+
+      toast.success(result.message || `KYC status updated to ${status}`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+
+      // Refresh the stats to update counts
+      fetchStats();
+    } catch (error) {
+      console.error("KYC update error:", error);
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to update KYC status",
+        {
+          position: "top-right",
+          autoClose: 4000,
+        }
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSuspendDriver = async (driverId) => {
     try {
       await driversService.update(driverId, { isActive: false });
       fetchDrivers(pagination.page);
       fetchStats();
-      toast.success('Driver suspended successfully', {
+      toast.success("Driver suspended successfully", {
         position: "top-right",
         autoClose: 3000,
       });
@@ -192,20 +277,20 @@ const DriversPage = () => {
       setLoading(true);
       const response = await driversService.getById(driverId);
       const driver = response.driver || response;
-      
+
       setEditingDriver(driver);
       setEditFormData({
-        name: driver.name || '',
-        email: driver.email || '',
-        phone: driver.phone || '',
-        experience: driver.experience || '',
-        licenseNumber: driver.licenseNumber || '',
-        address: driver.address || '',
-        emergencyContactName: driver.emergencyContact?.name || '',
-        emergencyContactPhone: driver.emergencyContact?.phone || '',
-        kycStatus: driver.kycStatus || 'Pending',
+        name: driver.name || "",
+        email: driver.email || "",
+        phone: driver.phone || "",
+        experience: driver.experience || "",
+        licenseNumber: driver.licenseNumber || "",
+        address: driver.address || "",
+        emergencyContactName: driver.emergencyContact?.name || "",
+        emergencyContactPhone: driver.emergencyContact?.phone || "",
+        kycStatus: driver.kycStatus || "Pending",
         isActive: driver.isActive !== false,
-        notes: driver.notes || ''
+        notes: driver.notes || "",
       });
       setShowEditModal(true);
     } catch (err) {
@@ -223,7 +308,7 @@ const DriversPage = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      
+
       const updateData = {
         name: editFormData.name,
         email: editFormData.email,
@@ -233,29 +318,33 @@ const DriversPage = () => {
         address: editFormData.address,
         emergencyContact: {
           name: editFormData.emergencyContactName,
-          phone: editFormData.emergencyContactPhone
+          phone: editFormData.emergencyContactPhone,
         },
         kycStatus: editFormData.kycStatus,
         isActive: editFormData.isActive,
-        notes: editFormData.notes
+        notes: editFormData.notes,
       };
 
       await driversService.update(editingDriver._id, updateData);
-      
+
       setShowEditModal(false);
       setEditingDriver(null);
       fetchDrivers(pagination.page);
       fetchStats();
-      toast.success('Driver updated successfully', {
+      toast.success("Driver updated successfully", {
         position: "top-right",
         autoClose: 3000,
       });
     } catch (err) {
       console.error("Error updating driver:", err);
-      toast.error("Failed to update driver: " + (err.response?.data?.message || err.message), {
-        position: "top-right",
-        autoClose: 5000,
-      });
+      toast.error(
+        "Failed to update driver: " +
+          (err.response?.data?.message || err.message),
+        {
+          position: "top-right",
+          autoClose: 5000,
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -265,45 +354,45 @@ const DriversPage = () => {
     setShowEditModal(false);
     setEditingDriver(null);
     setEditFormData({
-      name: '',
-      email: '',
-      phone: '',
-      experience: '',
-      licenseNumber: '',
-      address: '',
-      emergencyContactName: '',
-      emergencyContactPhone: '',
-      kycStatus: 'Pending',
+      name: "",
+      email: "",
+      phone: "",
+      experience: "",
+      licenseNumber: "",
+      address: "",
+      emergencyContactName: "",
+      emergencyContactPhone: "",
+      kycStatus: "Pending",
       isActive: true,
-      notes: ''
+      notes: "",
     });
   };
 
   const handleAddDriver = () => {
     setAddFormData({
-      name: '',
-      email: '',
-      phone: '',
-      experience: '',
-      licenseNumber: '',
-      address: '',
-      emergencyContactName: '',
-      emergencyContactPhone: '',
-      password: '',
-      confirmPassword: '',
-      kycStatus: 'Pending',
+      name: "",
+      email: "",
+      phone: "",
+      experience: "",
+      licenseNumber: "",
+      address: "",
+      emergencyContactName: "",
+      emergencyContactPhone: "",
+      password: "",
+      confirmPassword: "",
+      kycStatus: "Pending",
       isActive: true,
-      notes: ''
+      notes: "",
     });
     setShowAddModal(true);
   };
 
   const handleSaveNewDriver = async (e) => {
     e.preventDefault();
-    
+
     // Validate passwords match
     if (addFormData.password !== addFormData.confirmPassword) {
-      toast.error('Passwords do not match', {
+      toast.error("Passwords do not match", {
         position: "top-right",
         autoClose: 3000,
       });
@@ -311,7 +400,7 @@ const DriversPage = () => {
     }
 
     if (addFormData.password.length < 6) {
-      toast.error('Password must be at least 6 characters long', {
+      toast.error("Password must be at least 6 characters long", {
         position: "top-right",
         autoClose: 3000,
       });
@@ -320,7 +409,7 @@ const DriversPage = () => {
 
     try {
       setLoading(true);
-      
+
       const newDriverData = {
         name: addFormData.name,
         email: addFormData.email,
@@ -331,28 +420,31 @@ const DriversPage = () => {
         address: addFormData.address,
         emergencyContact: {
           name: addFormData.emergencyContactName,
-          phone: addFormData.emergencyContactPhone
+          phone: addFormData.emergencyContactPhone,
         },
         kycStatus: addFormData.kycStatus,
         isActive: addFormData.isActive,
-        notes: addFormData.notes
+        notes: addFormData.notes,
       };
 
       await driversService.create(newDriverData);
-      
+
       setShowAddModal(false);
       fetchDrivers(1); // Go to first page
       fetchStats();
-      toast.success('Driver added successfully', {
+      toast.success("Driver added successfully", {
         position: "top-right",
         autoClose: 3000,
       });
     } catch (err) {
       console.error("Error adding driver:", err);
-      toast.error("Failed to add driver: " + (err.response?.data?.message || err.message), {
-        position: "top-right",
-        autoClose: 5000,
-      });
+      toast.error(
+        "Failed to add driver: " + (err.response?.data?.message || err.message),
+        {
+          position: "top-right",
+          autoClose: 5000,
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -361,19 +453,19 @@ const DriversPage = () => {
   const handleCancelAdd = () => {
     setShowAddModal(false);
     setAddFormData({
-      name: '',
-      email: '',
-      phone: '',
-      experience: '',
-      licenseNumber: '',
-      address: '',
-      emergencyContactName: '',
-      emergencyContactPhone: '',
-      password: '',
-      confirmPassword: '',
-      kycStatus: 'Pending',
+      name: "",
+      email: "",
+      phone: "",
+      experience: "",
+      licenseNumber: "",
+      address: "",
+      emergencyContactName: "",
+      emergencyContactPhone: "",
+      password: "",
+      confirmPassword: "",
+      kycStatus: "Pending",
       isActive: true,
-      notes: ''
+      notes: "",
     });
   };
 
@@ -453,7 +545,7 @@ const DriversPage = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Driver Management</h1>
-        <button 
+        <button
           onClick={handleAddDriver}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
         >
@@ -716,6 +808,13 @@ const DriversPage = () => {
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
+                        onClick={() => handleViewDocuments(driver._id)}
+                        className="text-purple-600 hover:text-purple-800 p-1"
+                        title="View Documents"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </button>
+                      <button
                         onClick={() => handleEditDriver(driver._id)}
                         className="text-green-600 hover:text-green-800 p-1"
                         title="Edit Driver"
@@ -724,7 +823,11 @@ const DriversPage = () => {
                       </button>
                       <button
                         onClick={() => {
-                          if (window.confirm(`Are you sure you want to suspend ${driver.name}? This will prevent them from accepting new trips.`)) {
+                          if (
+                            window.confirm(
+                              `Are you sure you want to suspend ${driver.name}? This will prevent them from accepting new trips.`
+                            )
+                          ) {
                             handleSuspendDriver(driver._id);
                           }
                         }}
@@ -954,10 +1057,15 @@ const DriversPage = () => {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={editFormData.name}
-                      onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                      onChange={(e) =>
+                        setEditFormData({
+                          ...editFormData,
+                          name: e.target.value,
+                        })
+                      }
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Email *
@@ -967,7 +1075,12 @@ const DriversPage = () => {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={editFormData.email}
-                      onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                      onChange={(e) =>
+                        setEditFormData({
+                          ...editFormData,
+                          email: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -980,7 +1093,12 @@ const DriversPage = () => {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={editFormData.phone}
-                      onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                      onChange={(e) =>
+                        setEditFormData({
+                          ...editFormData,
+                          phone: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -993,7 +1111,12 @@ const DriversPage = () => {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={editFormData.licenseNumber}
-                      onChange={(e) => setEditFormData({...editFormData, licenseNumber: e.target.value})}
+                      onChange={(e) =>
+                        setEditFormData({
+                          ...editFormData,
+                          licenseNumber: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -1007,7 +1130,12 @@ const DriversPage = () => {
                       max="50"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={editFormData.experience}
-                      onChange={(e) => setEditFormData({...editFormData, experience: e.target.value})}
+                      onChange={(e) =>
+                        setEditFormData({
+                          ...editFormData,
+                          experience: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -1018,7 +1146,12 @@ const DriversPage = () => {
                     <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={editFormData.kycStatus}
-                      onChange={(e) => setEditFormData({...editFormData, kycStatus: e.target.value})}
+                      onChange={(e) =>
+                        setEditFormData({
+                          ...editFormData,
+                          kycStatus: e.target.value,
+                        })
+                      }
                     >
                       <option value="Pending">Pending</option>
                       <option value="Under Review">Under Review</option>
@@ -1036,7 +1169,12 @@ const DriversPage = () => {
                     rows="2"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={editFormData.address}
-                    onChange={(e) => setEditFormData({...editFormData, address: e.target.value})}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        address: e.target.value,
+                      })
+                    }
                   />
                 </div>
 
@@ -1049,7 +1187,12 @@ const DriversPage = () => {
                       type="text"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={editFormData.emergencyContactName}
-                      onChange={(e) => setEditFormData({...editFormData, emergencyContactName: e.target.value})}
+                      onChange={(e) =>
+                        setEditFormData({
+                          ...editFormData,
+                          emergencyContactName: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -1061,7 +1204,12 @@ const DriversPage = () => {
                       type="tel"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={editFormData.emergencyContactPhone}
-                      onChange={(e) => setEditFormData({...editFormData, emergencyContactPhone: e.target.value})}
+                      onChange={(e) =>
+                        setEditFormData({
+                          ...editFormData,
+                          emergencyContactPhone: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -1074,7 +1222,12 @@ const DriversPage = () => {
                     rows="3"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={editFormData.notes}
-                    onChange={(e) => setEditFormData({...editFormData, notes: e.target.value})}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        notes: e.target.value,
+                      })
+                    }
                     placeholder="Any notes about this driver..."
                   />
                 </div>
@@ -1085,9 +1238,17 @@ const DriversPage = () => {
                     id="isActive"
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     checked={editFormData.isActive}
-                    onChange={(e) => setEditFormData({...editFormData, isActive: e.target.checked})}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        isActive: e.target.checked,
+                      })
+                    }
                   />
-                  <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+                  <label
+                    htmlFor="isActive"
+                    className="ml-2 block text-sm text-gray-900"
+                  >
                     Active Driver (can accept new trips)
                   </label>
                 </div>
@@ -1105,7 +1266,7 @@ const DriversPage = () => {
                     disabled={loading}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                   >
-                    {loading ? 'Saving...' : 'Save Changes'}
+                    {loading ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </form>
@@ -1142,10 +1303,12 @@ const DriversPage = () => {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={addFormData.name}
-                      onChange={(e) => setAddFormData({...addFormData, name: e.target.value})}
+                      onChange={(e) =>
+                        setAddFormData({ ...addFormData, name: e.target.value })
+                      }
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Email *
@@ -1155,7 +1318,12 @@ const DriversPage = () => {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={addFormData.email}
-                      onChange={(e) => setAddFormData({...addFormData, email: e.target.value})}
+                      onChange={(e) =>
+                        setAddFormData({
+                          ...addFormData,
+                          email: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -1168,7 +1336,12 @@ const DriversPage = () => {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={addFormData.phone}
-                      onChange={(e) => setAddFormData({...addFormData, phone: e.target.value})}
+                      onChange={(e) =>
+                        setAddFormData({
+                          ...addFormData,
+                          phone: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -1181,7 +1354,12 @@ const DriversPage = () => {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={addFormData.licenseNumber}
-                      onChange={(e) => setAddFormData({...addFormData, licenseNumber: e.target.value})}
+                      onChange={(e) =>
+                        setAddFormData({
+                          ...addFormData,
+                          licenseNumber: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -1195,7 +1373,12 @@ const DriversPage = () => {
                       minLength="6"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={addFormData.password}
-                      onChange={(e) => setAddFormData({...addFormData, password: e.target.value})}
+                      onChange={(e) =>
+                        setAddFormData({
+                          ...addFormData,
+                          password: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -1209,7 +1392,12 @@ const DriversPage = () => {
                       minLength="6"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={addFormData.confirmPassword}
-                      onChange={(e) => setAddFormData({...addFormData, confirmPassword: e.target.value})}
+                      onChange={(e) =>
+                        setAddFormData({
+                          ...addFormData,
+                          confirmPassword: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -1223,7 +1411,12 @@ const DriversPage = () => {
                       max="50"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={addFormData.experience}
-                      onChange={(e) => setAddFormData({...addFormData, experience: e.target.value})}
+                      onChange={(e) =>
+                        setAddFormData({
+                          ...addFormData,
+                          experience: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -1234,7 +1427,12 @@ const DriversPage = () => {
                     <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={addFormData.kycStatus}
-                      onChange={(e) => setAddFormData({...addFormData, kycStatus: e.target.value})}
+                      onChange={(e) =>
+                        setAddFormData({
+                          ...addFormData,
+                          kycStatus: e.target.value,
+                        })
+                      }
                     >
                       <option value="Pending">Pending</option>
                       <option value="Under Review">Under Review</option>
@@ -1252,7 +1450,12 @@ const DriversPage = () => {
                     rows="2"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={addFormData.address}
-                    onChange={(e) => setAddFormData({...addFormData, address: e.target.value})}
+                    onChange={(e) =>
+                      setAddFormData({
+                        ...addFormData,
+                        address: e.target.value,
+                      })
+                    }
                   />
                 </div>
 
@@ -1265,7 +1468,12 @@ const DriversPage = () => {
                       type="text"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={addFormData.emergencyContactName}
-                      onChange={(e) => setAddFormData({...addFormData, emergencyContactName: e.target.value})}
+                      onChange={(e) =>
+                        setAddFormData({
+                          ...addFormData,
+                          emergencyContactName: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -1277,7 +1485,12 @@ const DriversPage = () => {
                       type="tel"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={addFormData.emergencyContactPhone}
-                      onChange={(e) => setAddFormData({...addFormData, emergencyContactPhone: e.target.value})}
+                      onChange={(e) =>
+                        setAddFormData({
+                          ...addFormData,
+                          emergencyContactPhone: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -1290,7 +1503,9 @@ const DriversPage = () => {
                     rows="3"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={addFormData.notes}
-                    onChange={(e) => setAddFormData({...addFormData, notes: e.target.value})}
+                    onChange={(e) =>
+                      setAddFormData({ ...addFormData, notes: e.target.value })
+                    }
                     placeholder="Any notes about this driver..."
                   />
                 </div>
@@ -1301,9 +1516,17 @@ const DriversPage = () => {
                     id="isActiveAdd"
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     checked={addFormData.isActive}
-                    onChange={(e) => setAddFormData({...addFormData, isActive: e.target.checked})}
+                    onChange={(e) =>
+                      setAddFormData({
+                        ...addFormData,
+                        isActive: e.target.checked,
+                      })
+                    }
                   />
-                  <label htmlFor="isActiveAdd" className="ml-2 block text-sm text-gray-900">
+                  <label
+                    htmlFor="isActiveAdd"
+                    className="ml-2 block text-sm text-gray-900"
+                  >
                     Active Driver (can accept new trips)
                   </label>
                 </div>
@@ -1321,10 +1544,375 @@ const DriversPage = () => {
                     disabled={loading}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                   >
-                    {loading ? 'Adding...' : 'Add Driver'}
+                    {loading ? "Adding..." : "Add Driver"}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Documents View Modal */}
+      {showDocumentsModal && selectedDriver && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-11/12 md:w-5/6 lg:w-4/5 xl:w-3/4 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Driver Documents -{" "}
+                  {selectedDriver.fullName || selectedDriver.name}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowDocumentsModal(false);
+                    setSelectedDriver(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Driver Info */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-800 mb-2">
+                    Driver Information
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                    <div>
+                      <strong>Email:</strong> {selectedDriver.email}
+                    </div>
+                    <div>
+                      <strong>Phone:</strong> {selectedDriver.phone}
+                    </div>
+                    <div>
+                      <strong>KYC Status:</strong>
+                      <span
+                        className={`ml-1 font-medium ${
+                          selectedDriver.kycStatus === "approved" ||
+                          selectedDriver.kycStatus === "Approved"
+                            ? "text-green-600"
+                            : selectedDriver.kycStatus === "rejected" ||
+                              selectedDriver.kycStatus === "Rejected"
+                            ? "text-red-600"
+                            : "text-yellow-600"
+                        }`}
+                      >
+                        {selectedDriver.kycStatus || "Pending"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Documents Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Aadhar Card */}
+                  <div className="border rounded-lg p-4">
+                    <h5 className="font-medium text-gray-800 mb-2 flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Aadhar Card
+                    </h5>
+                    {selectedDriver.documents?.aadharCard ? (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <img
+                            src={`http://localhost:5000${selectedDriver.documents.aadharCard}`}
+                            alt="Aadhar Card"
+                            className="w-full h-32 object-cover rounded-md border"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.parentNode.querySelector(
+                                ".fallback"
+                              ).style.display = "flex";
+                            }}
+                          />
+                          <div className="fallback hidden items-center justify-center w-full h-32 bg-gray-100 rounded-md border">
+                            <div className="text-center text-gray-500">
+                              <FileText className="h-8 w-8 mx-auto mb-1" />
+                              <p className="text-xs">Preview unavailable</p>
+                            </div>
+                          </div>
+                        </div>
+                        <a
+                          href={`http://localhost:5000${selectedDriver.documents.aadharCard}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 text-blue-600 hover:text-blue-800 text-sm py-1"
+                        >
+                          <Download className="h-4 w-4" />
+                          View/Download
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 border rounded-md bg-gray-50">
+                        <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No document uploaded</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PAN Card */}
+                  <div className="border rounded-lg p-4">
+                    <h5 className="font-medium text-gray-800 mb-2 flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      PAN Card
+                    </h5>
+                    {selectedDriver.documents?.panCard ? (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <img
+                            src={`http://localhost:5000${selectedDriver.documents.panCard}`}
+                            alt="PAN Card"
+                            className="w-full h-32 object-cover rounded-md border"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.parentNode.querySelector(
+                                ".fallback"
+                              ).style.display = "flex";
+                            }}
+                          />
+                          <div className="fallback hidden items-center justify-center w-full h-32 bg-gray-100 rounded-md border">
+                            <div className="text-center text-gray-500">
+                              <FileText className="h-8 w-8 mx-auto mb-1" />
+                              <p className="text-xs">Preview unavailable</p>
+                            </div>
+                          </div>
+                        </div>
+                        <a
+                          href={`http://localhost:5000${selectedDriver.documents.panCard}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 text-blue-600 hover:text-blue-800 text-sm py-1"
+                        >
+                          <Download className="h-4 w-4" />
+                          View/Download
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 border rounded-md bg-gray-50">
+                        <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No document uploaded</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* License Image */}
+                  <div className="border rounded-lg p-4">
+                    <h5 className="font-medium text-gray-800 mb-2 flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Driving License
+                    </h5>
+                    {selectedDriver.documents?.licenseImage ? (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <img
+                            src={`http://localhost:5000${selectedDriver.documents.licenseImage}`}
+                            alt="Driving License"
+                            className="w-full h-32 object-cover rounded-md border"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.parentNode.querySelector(
+                                ".fallback"
+                              ).style.display = "flex";
+                            }}
+                          />
+                          <div className="fallback hidden items-center justify-center w-full h-32 bg-gray-100 rounded-md border">
+                            <div className="text-center text-gray-500">
+                              <FileText className="h-8 w-8 mx-auto mb-1" />
+                              <p className="text-xs">Preview unavailable</p>
+                            </div>
+                          </div>
+                        </div>
+                        <a
+                          href={`http://localhost:5000${selectedDriver.documents.licenseImage}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 text-blue-600 hover:text-blue-800 text-sm py-1"
+                        >
+                          <Download className="h-4 w-4" />
+                          View/Download
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 border rounded-md bg-gray-50">
+                        <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No document uploaded</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Police Verification */}
+                  <div className="border rounded-lg p-4">
+                    <h5 className="font-medium text-gray-800 mb-2 flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Police Verification
+                    </h5>
+                    {selectedDriver.documents?.policeVerification ? (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <img
+                            src={`http://localhost:5000${selectedDriver.documents.policeVerification}`}
+                            alt="Police Verification"
+                            className="w-full h-32 object-cover rounded-md border"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.parentNode.querySelector(
+                                ".fallback"
+                              ).style.display = "flex";
+                            }}
+                          />
+                          <div className="fallback hidden items-center justify-center w-full h-32 bg-gray-100 rounded-md border">
+                            <div className="text-center text-gray-500">
+                              <FileText className="h-8 w-8 mx-auto mb-1" />
+                              <p className="text-xs">Preview unavailable</p>
+                            </div>
+                          </div>
+                        </div>
+                        <a
+                          href={`http://localhost:5000${selectedDriver.documents.policeVerification}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 text-blue-600 hover:text-blue-800 text-sm py-1"
+                        >
+                          <Download className="h-4 w-4" />
+                          View/Download
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 border rounded-md bg-gray-50">
+                        <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No document uploaded</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Medical Certificate */}
+                  <div className="border rounded-lg p-4">
+                    <h5 className="font-medium text-gray-800 mb-2 flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Medical Certificate
+                    </h5>
+                    {selectedDriver.documents?.medicalCertificate ? (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <img
+                            src={`http://localhost:5000${selectedDriver.documents.medicalCertificate}`}
+                            alt="Medical Certificate"
+                            className="w-full h-32 object-cover rounded-md border"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.parentNode.querySelector(
+                                ".fallback"
+                              ).style.display = "flex";
+                            }}
+                          />
+                          <div className="fallback hidden items-center justify-center w-full h-32 bg-gray-100 rounded-md border">
+                            <div className="text-center text-gray-500">
+                              <FileText className="h-8 w-8 mx-auto mb-1" />
+                              <p className="text-xs">Preview unavailable</p>
+                            </div>
+                          </div>
+                        </div>
+                        <a
+                          href={`http://localhost:5000${selectedDriver.documents.medicalCertificate}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 text-blue-600 hover:text-blue-800 text-sm py-1"
+                        >
+                          <Download className="h-4 w-4" />
+                          View/Download
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 border rounded-md bg-gray-50">
+                        <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No document uploaded</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* KYC Actions */}
+                <div className="border-t pt-6">
+                  <h5 className="font-medium text-gray-800 mb-3">
+                    KYC Management
+                  </h5>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() =>
+                        handleKycUpdate(selectedDriver._id, "approved")
+                      }
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center gap-2"
+                      disabled={loading}
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M5 13l4 4L19 7"
+                        ></path>
+                      </svg>
+                      Approve KYC
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleKycUpdate(selectedDriver._id, "rejected")
+                      }
+                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center gap-2"
+                      disabled={loading}
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M6 18L18 6M6 6l12 12"
+                        ></path>
+                      </svg>
+                      Reject KYC
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleKycUpdate(selectedDriver._id, "pending")
+                      }
+                      className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors flex items-center gap-2"
+                      disabled={loading}
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path>
+                      </svg>
+                      Mark as Pending
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Review all documents before approving or rejecting the KYC
+                    status.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

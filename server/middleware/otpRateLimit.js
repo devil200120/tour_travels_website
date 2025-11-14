@@ -3,6 +3,21 @@ import Driver from '../models/Driver.js';
 // In-memory rate limiting for OTP requests (consider using Redis in production)
 const otpRequestTracker = new Map();
 
+// Export the tracker for admin access
+export const clearOtpRateLimit = (identifier) => {
+    if (identifier) {
+        otpRequestTracker.delete(identifier.toLowerCase());
+        return true;
+    }
+    return false;
+};
+
+// Clear all rate limiting data (for development/admin use)
+export const clearAllOtpRateLimits = () => {
+    otpRequestTracker.clear();
+    return true;
+};
+
 const otpRateLimit = async (req, res, next) => {
     try {
         const { email, phone } = req.body;
@@ -23,9 +38,9 @@ const otpRateLimit = async (req, res, next) => {
             const tracker = otpRequestTracker.get(trackerKey);
             const timeDiff = now - tracker.lastRequest;
             
-            // Rate limit: 1 request per minute
-            if (timeDiff < 60 * 1000) { // 60 seconds
-                const remainingTime = Math.ceil((60 * 1000 - timeDiff) / 1000);
+            // Rate limit: 1 request per 30 seconds
+            if (timeDiff < 30 * 1000) { // 30 seconds
+                const remainingTime = Math.ceil((30 * 1000 - timeDiff) / 1000);
                 return res.status(429).json({
                     success: false,
                     message: `Please wait ${remainingTime} seconds before requesting another OTP`,
@@ -33,12 +48,12 @@ const otpRateLimit = async (req, res, next) => {
                 });
             }
             
-            // Check daily limit (max 5 OTP requests per day per identifier)
-            if (tracker.dailyCount >= 5 && now - tracker.dayStart < 24 * 60 * 60 * 1000) {
+            // Check daily limit (max 50 OTP requests per day per identifier)
+            if (tracker.dailyCount >= 50 && now - tracker.dayStart < 24 * 60 * 60 * 1000) {
                 return res.status(429).json({
                     success: false,
                     message: 'Daily OTP limit exceeded. Please try again tomorrow or contact support.',
-                    dailyLimit: 5,
+                    dailyLimit: 50,
                     resetTime: '24 hours'
                 });
             }

@@ -138,6 +138,56 @@ router.put('/:id',
   }
 );
 
+// Delete package
+router.delete('/:id',
+  authenticateToken,
+  checkPermission('packages', 'delete'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const deletedPackage = await Package.findByIdAndDelete(id);
+
+      if (!deletedPackage) {
+        return res.status(404).json({ message: 'Package not found' });
+      }
+
+      res.json({
+        message: 'Package deleted successfully'
+      });
+    } catch (error) {
+      console.error('Delete package error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
+// Get single package
+router.get('/:id',
+  authenticateToken,
+  checkPermission('packages', 'read'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const packageData = await Package.findById(id)
+        .populate('createdBy', 'name email')
+        .populate('lastModifiedBy', 'name email');
+
+      if (!packageData) {
+        return res.status(404).json({ message: 'Package not found' });
+      }
+
+      res.json({
+        package: packageData
+      });
+    } catch (error) {
+      console.error('Get package error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
 // Get package pricing for specific dates
 router.post('/:id/pricing',
   authenticateToken,

@@ -43,13 +43,22 @@ const fileFilter = (req, file, cb) => {
         'image/jpg', 
         'image/png',
         'image/webp',
-        'application/pdf'
+        'image/gif',
+        'application/pdf',
+        'application/octet-stream' // For files uploaded from web without proper MIME type
     ];
     
-    if (allowedMimeTypes.includes(file.mimetype)) {
+    // Also check file extension as fallback
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.pdf'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    
+    console.log(`File upload attempt - Name: ${file.originalname}, MIME: ${file.mimetype}, Extension: ${ext}`);
+    
+    if (allowedMimeTypes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
         cb(null, true);
     } else {
-        cb(new Error('Invalid file type. Only JPEG, PNG, WebP and PDF files are allowed.'), false);
+        console.error(`File rejected - Name: ${file.originalname}, MIME: ${file.mimetype}, Extension: ${ext}`);
+        cb(new Error(`Invalid file type. Only JPEG, PNG, WebP and PDF files are allowed. Received: ${file.mimetype}`), false);
     }
 };
 

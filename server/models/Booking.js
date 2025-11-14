@@ -68,6 +68,21 @@ const bookingSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Driver'
   },
+  rejectedBy: [{
+    driverId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Driver',
+      required: true
+    },
+    reason: {
+      type: String,
+      default: 'No reason provided'
+    },
+    rejectedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   packageDetails: {
     packageId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -127,6 +142,7 @@ const bookingSchema = new mongoose.Schema({
   tripDetails: {
     startTime: Date,
     endTime: Date,
+    completedAt: Date,  // When the trip was actually completed
     actualStartLocation: {
       latitude: Number,
       longitude: Number,

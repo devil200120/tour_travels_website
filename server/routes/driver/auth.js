@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import process from 'process';
 import Driver from '../../models/Driver.js';
 import driverAuth from '../../middleware/driverAuth.js';
-import otpRateLimit from '../../middleware/otpRateLimit.js';
+import otpRateLimit, { clearOtpRateLimit, clearAllOtpRateLimits } from '../../middleware/otpRateLimit.js';
 import { uploadDriverDocuments } from '../../middleware/fileUpload.js';
 import OTPService from '../../services/otpService.js';
 const router = express.Router();
@@ -12,6 +12,11 @@ const router = express.Router();
 // Driver Registration/Signup with Document Upload
 router.post('/signup', uploadDriverDocuments, async (req, res) => {
     try {
+        console.log('📝 Driver Signup Request Received');
+        console.log('Request body fields:', Object.keys(req.body));
+        console.log('Request files:', req.files ? Object.keys(req.files) : 'None');
+        console.log('License type received:', req.body.licenseType);
+        
         const {
             name,
             email,
@@ -28,6 +33,7 @@ router.post('/signup', uploadDriverDocuments, async (req, res) => {
             languages,
             specializations,
             vehicleDetails,
+            vehicleNumber,
             bankDetails
         } = req.body;
 
@@ -159,18 +165,18 @@ router.post('/signup', uploadDriverDocuments, async (req, res) => {
             alternatePhone,
             password: hashedPassword,
             address: parsedAddress,
-            dateOfBirth,
+            dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : new Date('1990-01-01'),
             licenseNumber,
-            licenseExpiry,
-            licenseType,
-            experience: experience || 0,
+            licenseExpiry: licenseExpiry ? new Date(licenseExpiry) : new Date(Date.now() + 365*24*60*60*1000), // Default to 1 year from now
+            licenseType: licenseType || 'Light Motor Vehicle',
+            experience: parseInt(experience) || 0,
             profileImage,
             documents,
             bankDetails: parsedBankDetails,
             emergencyContact: parsedEmergencyContact,
             languages: Array.isArray(languages) ? languages : (languages ? languages.split(',') : ['English']),
-            specializations: Array.isArray(specializations) ? specializations : (specializations ? specializations.split(',') : []),
-            vehicleDetails,
+            specializations: Array.isArray(specializations) ? specializations : (specializations ? specializations.split(',') : ['City Tours']),
+            vehicleDetails: vehicleDetails || vehicleNumber || 'Not specified',
             kycStatus: 'Under Review', // Since required documents are uploaded, set to Under Review
             isActive: true,
             isAvailable: false,
@@ -1273,6 +1279,45 @@ router.get('/reset-password-test', (req, res) => {
         timestamp: new Date().toISOString(),
         route: '/api/driver/auth/reset-password'
     });
+});
+
+// Admin endpoint to clear OTP rate limits (for development)
+router.post('/admin/clear-rate-limits', async (req, res) => {
+    try {
+        const { phone, clearAll } = req.body;
+        
+        if (clearAll) {
+            clearAllOtpRateLimits();
+            console.log('🧹 Cleared all OTP rate limits');
+            return res.json({
+                success: true,
+                message: 'All OTP rate limits cleared successfully'
+            });
+        }
+        
+        if (phone) {
+            const cleared = clearOtpRateLimit(phone);
+            console.log(`🧹 Cleared OTP rate limit for phone: ${phone}`);
+            return res.json({
+                success: true,
+                message: `OTP rate limit cleared for ${phone}`,
+                cleared
+            });
+        }
+        
+        res.status(400).json({
+            success: false,
+            message: 'Please provide phone number or set clearAll to true'
+        });
+        
+    } catch (error) {
+        console.error('Clear rate limits error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to clear rate limits',
+            error: error.message
+        });
+    }
 });
 
 export default router;

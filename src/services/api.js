@@ -86,7 +86,7 @@ export const bookingsService = {
     return response.data;
   },
   
-  getStats: async () => {
+  getDashboardStats: async () => {
     const response = await api.get('/admin/bookings/stats/dashboard');
     return response.data;
   }
@@ -183,6 +183,11 @@ export const vehiclesService = {
     return response.data;
   },
   
+  getById: async (id) => {
+    const response = await api.get(`/admin/vehicles/${id}`);
+    return response.data;
+  },
+  
   create: async (data) => {
     const response = await api.post('/admin/vehicles', data);
     return response.data;
@@ -190,6 +195,11 @@ export const vehiclesService = {
   
   update: async (id, data) => {
     const response = await api.put(`/admin/vehicles/${id}`, data);
+    return response.data;
+  },
+  
+  delete: async (id) => {
+    const response = await api.delete(`/admin/vehicles/${id}`);
     return response.data;
   }
 };
@@ -203,6 +213,11 @@ export const customersService = {
   
   getById: async (id) => {
     const response = await api.get(`/admin/users/customers/${id}`);
+    return response.data;
+  },
+  
+  create: async (data) => {
+    const response = await api.post('/admin/users/customers', data);
     return response.data;
   },
   
@@ -224,6 +239,11 @@ export const packagesService = {
     return response.data;
   },
   
+  getById: async (id) => {
+    const response = await api.get(`/admin/packages/${id}`);
+    return response.data;
+  },
+  
   create: async (data) => {
     const response = await api.post('/admin/packages', data);
     return response.data;
@@ -231,6 +251,11 @@ export const packagesService = {
   
   update: async (id, data) => {
     const response = await api.put(`/admin/packages/${id}`, data);
+    return response.data;
+  },
+  
+  delete: async (id) => {
+    const response = await api.delete(`/admin/packages/${id}`);
     return response.data;
   },
   

@@ -9,6 +9,24 @@ import { authenticateToken, checkPermission } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Generate unique booking ID
+const generateBookingId = async () => {
+  const prefix = 'TT';
+  const timestamp = Date.now().toString().slice(-8);
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  let bookingId = `${prefix}${timestamp}${random}`;
+  
+  // Ensure uniqueness
+  let exists = await Booking.findOne({ bookingId });
+  while (exists) {
+    const newRandom = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    bookingId = `${prefix}${timestamp}${newRandom}`;
+    exists = await Booking.findOne({ bookingId });
+  }
+  
+  return bookingId;
+};
+
 // Get all bookings
 router.get('/',
   authenticateToken,
@@ -125,8 +143,12 @@ router.post('/',
         return res.status(400).json({ errors: errors.array() });
       }
 
+      // Generate unique booking ID
+      const bookingId = await generateBookingId();
+
       const bookingData = {
         ...req.body,
+        bookingId,
         createdBy: req.user._id,
         lastModifiedBy: req.user._id
       };
