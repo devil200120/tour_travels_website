@@ -248,15 +248,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                           .requestOtp(phone);
                                       if (success) {
                                         setState(() => otpSent = true);
-                                        
-                                        // Show OTP in test mode
-                                        String message = "OTP sent successfully ✅";
-                                        if (authProvider.isTestMode && authProvider.testOtp != null) {
-                                          message = "🧪 TEST MODE\nOTP: ${authProvider.testOtp}\n(Use this OTP to login)";
-                                        }
-                                        
                                         _showSnack(
-                                          message,
+                                          "OTP sent successfully ✅",
                                           Colors.green,
                                         );
                                       } else {

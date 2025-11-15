@@ -27,10 +27,6 @@ class AuthProvider with ChangeNotifier {
   String? _tempPhone;
   String? savedToken;
   String? savedDriverId;
-  
-  // Test mode for easier development
-  bool isTestMode = true; // Set to false in production
-  String? testOtp; // Will store the test OTP for display
 
   // -----------------------
   // Init
@@ -59,17 +55,6 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
 
       _tempPhone = phone;
-      
-      // Test mode: Generate a fixed OTP for easy testing
-      if (isTestMode) {
-        testOtp = "123456"; // Fixed OTP for testing
-        debugPrint("🧪 TEST MODE: OTP is $testOtp");
-        
-        // Simulate API call delay
-        await Future.delayed(const Duration(seconds: 1));
-        return true;
-      }
-      
       final url = Uri.parse("$baseUrl/auth/login/request-otp");
 
       final response = await http
@@ -137,20 +122,6 @@ class AuthProvider with ChangeNotifier {
       isLoading = true;
       errorMessage = null;
       notifyListeners();
-
-      // Test mode: Check against test OTP
-      if (isTestMode) {
-        if (otp == testOtp) {
-          debugPrint("🧪 TEST MODE: OTP verified successfully");
-          
-          // Simulate successful login response
-          await _saveAuthData("test_token_123", "test_driver_id_456");
-          return true;
-        } else {
-          errorMessage = "Invalid OTP. Use: $testOtp";
-          return false;
-        }
-      }
 
       final url = Uri.parse("$baseUrl/auth/login/verify-otp");
       final response = await http
