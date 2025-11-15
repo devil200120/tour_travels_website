@@ -187,6 +187,60 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // 🔹 OTP Field (Visible after OTP sent)
                         if (otpSent) ...[
+                          // Display OTP for testing (development mode)
+                          if (authProvider.receivedOtp != null)
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              margin: const EdgeInsets.only(bottom: 15),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                border: Border.all(color: Colors.green.shade200),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.info_outline, 
+                                    color: Colors.green, size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          "Test OTP (Development Mode):",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                        Text(
+                                          authProvider.receivedOtp!,
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green,
+                                            letterSpacing: 3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.copy, 
+                                      color: Colors.green, size: 18),
+                                    onPressed: () {
+                                      otpCtrl.text = authProvider.receivedOtp!;
+                                      _showSnack(
+                                        "OTP copied to input field ✅",
+                                        Colors.green,
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
                           const Text(
                             "Enter OTP",
                             style: TextStyle(
@@ -367,57 +421,5 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
-  }
-
-  void _showOtpDialog(String otp) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            '🔥 TEST OTP',
-            style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'For Testing Purpose Only:',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange),
-                ),
-                child: Text(
-                  otp,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
-                    color: Colors.orange,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Use this OTP to login',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
   }
 }

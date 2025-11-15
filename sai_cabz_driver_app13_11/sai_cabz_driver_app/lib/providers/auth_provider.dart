@@ -27,6 +27,7 @@ class AuthProvider with ChangeNotifier {
   String? _tempPhone;
   String? savedToken;
   String? savedDriverId;
+  String? receivedOtp; // Store OTP for testing display
 
   // -----------------------
   // Init
@@ -67,6 +68,10 @@ class AuthProvider with ChangeNotifier {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data["success"] == true) {
+        // Store OTP if provided (development mode)
+        if (data["otp"] != null) {
+          receivedOtp = data["otp"];
+        }
         await _sendOtpWithFirebase(phone);
         return true;
       } else {
