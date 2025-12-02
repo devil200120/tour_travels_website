@@ -194,17 +194,23 @@ class _LoginScreenState extends State<LoginScreen> {
                               margin: const EdgeInsets.only(bottom: 15),
                               decoration: BoxDecoration(
                                 color: Colors.green.shade50,
-                                border: Border.all(color: Colors.green.shade200),
+                                border: Border.all(
+                                  color: Colors.green.shade200,
+                                ),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.info_outline, 
-                                    color: Colors.green, size: 20),
+                                  const Icon(
+                                    Icons.info_outline,
+                                    color: Colors.green,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         const Text(
                                           "Test OTP (Development Mode):",
@@ -227,8 +233,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.copy, 
-                                      color: Colors.green, size: 18),
+                                    icon: const Icon(
+                                      Icons.copy,
+                                      color: Colors.green,
+                                      size: 18,
+                                    ),
                                     onPressed: () {
                                       otpCtrl.text = authProvider.receivedOtp!;
                                       _showSnack(
@@ -240,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ],
                               ),
                             ),
-                            
+
                           const Text(
                             "Enter OTP",
                             style: TextStyle(

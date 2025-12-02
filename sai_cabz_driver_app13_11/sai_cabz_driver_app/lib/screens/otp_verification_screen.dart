@@ -34,7 +34,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 20),
-            
+
             // Display OTP for testing (development mode)
             if (authProvider.receivedOtp != null)
               Container(
@@ -87,7 +87,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                   ],
                 ),
               ),
-            
+
             TextField(
               controller: otpCtrl,
               keyboardType: TextInputType.number,

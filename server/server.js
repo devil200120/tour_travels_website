@@ -26,6 +26,10 @@ import customerProfileRoutes from './routes/customer/profile.js';
 import customerPaymentRoutes from './routes/customer/payments.js';
 import customerSupportRoutes from './routes/customer/support.js';
 import customerTripRoutes from './routes/customer/trips.js';
+import customerPromotionsRoutes from './routes/customer/promotions.js';
+import customerFavoritesRoutes from './routes/customer/favorites.js';
+import customerNotificationsRoutes from './routes/customer/notifications.js';
+import customerSearchRoutes from './routes/customer/search.js';
 
 // Driver API routes
 import driverAuthRoutes from './routes/driver/auth.js';
@@ -158,6 +162,10 @@ app.use('/api/customer/profile', customerProfileRoutes);
 app.use('/api/customer/payments', customerPaymentRoutes);
 app.use('/api/customer/support', customerSupportRoutes);
 app.use('/api/customer/trips', customerTripRoutes);
+app.use('/api/customer/promotions', customerPromotionsRoutes);
+app.use('/api/customer/favorites', customerFavoritesRoutes);
+app.use('/api/customer/notifications', customerNotificationsRoutes);
+app.use('/api/customer/search', customerSearchRoutes);
 
 // Driver API Routes
 app.use('/api/driver/auth', driverAuthRoutes);

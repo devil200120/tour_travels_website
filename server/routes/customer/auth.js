@@ -1,10 +1,44 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import axios from 'axios';
 import Customer from '../../models/Customer.js';
 import { sendOTP, sendEmail } from '../../services/notificationService.js';
 
 const router = express.Router();
+
+// Google Maps API Key
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyBex7m-h6IiZGl2bNOsjG0nE78f6A1KS4Y';
+
+// Helper function to geocode address using Google Maps API
+const geocodeAddress = async (address) => {
+  try {
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json`,
+      {
+        params: {
+          address: address,
+          key: GOOGLE_MAPS_API_KEY
+        }
+      }
+    );
+
+    if (response.data.status === 'OK' && response.data.results.length > 0) {
+      const result = response.data.results[0];
+      return {
+        formattedAddress: result.formatted_address,
+        latitude: result.geometry.location.lat,
+        longitude: result.geometry.location.lng,
+        placeId: result.place_id,
+        components: result.address_components
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Geocoding error:', error.message);
+    return null;
+  }
+};
 
 // Generate OTP
 const generateOTP = () => {
@@ -23,14 +57,59 @@ const generateToken = (customerId) => {
 // @access  Public
 router.post('/register', async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, password, deviceInfo } = req.body;
+    const { 
+      firstName, 
+      lastName, 
+      email, 
+      phone, 
+      password, 
+      dateOfBirth,
+      gender,
+      address,
+      emergencyContact,
+      deviceInfo 
+    } = req.body;
 
     // Validate required fields
     if (!firstName || !lastName || !email || !phone || !password) {
       return res.status(400).json({
         success: false,
-        message: 'All fields are required'
+        message: 'First name, last name, email, phone and password are required'
       });
+    }
+
+    // Validate date of birth (optional but recommended)
+    if (dateOfBirth) {
+      const dob = new Date(dateOfBirth);
+      const today = new Date();
+      const age = today.getFullYear() - dob.getFullYear();
+      if (age < 18) {
+        return res.status(400).json({
+          success: false,
+          message: 'Customer must be at least 18 years old'
+        });
+      }
+    }
+
+    // Validate gender (optional)
+    if (gender && !['Male', 'Female', 'Other'].includes(gender)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Gender must be Male, Female, or Other'
+      });
+    }
+
+    // Validate address (mandatory)
+    if (!address || !address.address) {
+      return res.status(400).json({
+        success: false,
+        message: 'Address is required'
+      });
+    }
+
+    // Validate address label
+    if (!address.label) {
+      address.label = 'Home'; // Default label
     }
 
     // Check if customer already exists
@@ -45,6 +124,68 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    // Geocode address using Google Maps API
+    let geocodedAddress = null;
+    if (address.latitude && address.longitude) {
+      // If coordinates are already provided, use them
+      geocodedAddress = {
+        label: address.label || 'Home',
+        address: address.address,
+        landmark: address.landmark || '',
+        latitude: address.latitude,
+        longitude: address.longitude,
+        placeId: address.placeId || '',
+        city: address.city || '',
+        state: address.state || '',
+        pincode: address.pincode || '',
+        country: address.country || 'India',
+        isDefault: true
+      };
+    } else {
+      // Geocode the address to get coordinates
+      const geoResult = await geocodeAddress(address.address);
+      
+      if (!geoResult) {
+        return res.status(400).json({
+          success: false,
+          message: 'Unable to geocode address. Please provide a valid address or include coordinates.'
+        });
+      }
+
+      // Extract city, state, pincode from address components
+      let city = '', state = '', pincode = '', country = 'India';
+      if (geoResult.components) {
+        geoResult.components.forEach(component => {
+          if (component.types.includes('locality')) {
+            city = component.long_name;
+          }
+          if (component.types.includes('administrative_area_level_1')) {
+            state = component.long_name;
+          }
+          if (component.types.includes('postal_code')) {
+            pincode = component.long_name;
+          }
+          if (component.types.includes('country')) {
+            country = component.long_name;
+          }
+        });
+      }
+
+      geocodedAddress = {
+        label: address.label || 'Home',
+        address: geoResult.formattedAddress,
+        landmark: address.landmark || '',
+        latitude: geoResult.latitude,
+        longitude: geoResult.longitude,
+        placeId: geoResult.placeId,
+        city: city,
+        state: state,
+        pincode: pincode,
+        country: country,
+        isDefault: true
+      };
+    }
+
     // Generate OTP
     const phoneOTP = generateOTP();
     const emailOTP = generateOTP();
@@ -56,6 +197,10 @@ router.post('/register', async (req, res) => {
       email,
       phone,
       password,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+      gender: gender || undefined,
+      addresses: [geocodedAddress],
+      emergencyContact: emergencyContact || undefined,
       phoneOTP,
       emailOTP,
       otpExpiry: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
@@ -75,6 +220,7 @@ router.post('/register', async (req, res) => {
         customerId: customer._id,
         phoneOTPSent: true,
         emailOTPSent: true,
+        address: geocodedAddress,
         // For development only - remove in production
         devOTPs: {
           phoneOTP,

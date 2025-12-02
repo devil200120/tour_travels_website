@@ -5,8 +5,13 @@ const AddressSchema = new mongoose.Schema({
   label: { type: String, required: true }, // Home, Office, etc.
   address: { type: String, required: true },
   landmark: String,
-  latitude: Number,
-  longitude: Number,
+  latitude: { type: Number, required: true },
+  longitude: { type: Number, required: true },
+  placeId: String, // Google Maps Place ID
+  city: String,
+  state: String,
+  pincode: String,
+  country: { type: String, default: 'India' },
   isDefault: { type: Boolean, default: false }
 });
 
@@ -77,6 +82,32 @@ const customerSchema = new mongoose.Schema({
       email: { type: Boolean, default: true }
     },
     theme: { type: String, enum: ['light', 'dark'], default: 'light' }
+  },
+  
+  // Notification Preferences (detailed)
+  notificationPreferences: {
+    push: {
+      enabled: { type: Boolean, default: true },
+      booking: { type: Boolean, default: true },
+      trip: { type: Boolean, default: true },
+      payment: { type: Boolean, default: true },
+      promotion: { type: Boolean, default: true },
+      system: { type: Boolean, default: true }
+    },
+    email: {
+      enabled: { type: Boolean, default: true },
+      booking: { type: Boolean, default: true },
+      trip: { type: Boolean, default: true },
+      payment: { type: Boolean, default: true },
+      promotion: { type: Boolean, default: false },
+      newsletter: { type: Boolean, default: false }
+    },
+    sms: {
+      enabled: { type: Boolean, default: true },
+      booking: { type: Boolean, default: true },
+      trip: { type: Boolean, default: true },
+      otp: { type: Boolean, default: true }
+    }
   },
   
   // Social Login
@@ -175,6 +206,34 @@ customerSchema.methods.comparePassword = async function(candidatePassword) {
 // Method to check if account is locked
 customerSchema.methods.isLocked = function() {
   return !!(this.lockUntil && this.lockUntil > Date.now());
+};
+
+// Method to increment login attempts
+customerSchema.methods.incLoginAttempts = async function() {
+  // If we have a previous lock that has expired, reset
+  if (this.lockUntil && this.lockUntil < Date.now()) {
+    return this.updateOne({
+      $set: { loginAttempts: 1 },
+      $unset: { lockUntil: 1 }
+    });
+  }
+  
+  const updates = { $inc: { loginAttempts: 1 } };
+  
+  // Lock account after 5 failed attempts for 2 hours
+  if (this.loginAttempts + 1 >= 5) {
+    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 };
+  }
+  
+  return this.updateOne(updates);
+};
+
+// Method to reset login attempts
+customerSchema.methods.resetLoginAttempts = async function() {
+  return this.updateOne({
+    $set: { loginAttempts: 0 },
+    $unset: { lockUntil: 1 }
+  });
 };
 
 export default mongoose.model('Customer', customerSchema);

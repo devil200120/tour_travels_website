@@ -1,0 +1,779 @@
+{
+  "info": {
+    "name": "Tour & Travels Customer APIs",
+    "description": "Complete Customer API collection for Tour & Travels application",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/customer"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"Customer\",\n  \"email\": \"testcustomer@example.com\",\n  \"phone\": \"+919876543210\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+919876543210\",\n  \"otp\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/verify-otp"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+919876543210\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Social Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"google\",\n  \"token\": \"google_access_token\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john@gmail.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/social-login"
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+919876543210\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/resend-otp"
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+919876543210\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/forgot-password"
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+919876543210\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"newpassword123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/reset-password"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/profile"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"dateOfBirth\": \"1990-01-15\",\n  \"gender\": \"Male\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/profile"
+          }
+        },
+        {
+          "name": "Get Addresses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/profile/addresses"
+          }
+        },
+        {
+          "name": "Add Address",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Home\",\n  \"address\": \"123 Main Street, City\",\n  \"landmark\": \"Near Park\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.2090,\n  \"isDefault\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/profile/addresses"
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/profile/change-password"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Bookings",
+      "item": [
+        {
+          "name": "Get Vehicle Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/vehicle-categories?city=Delhi",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "vehicle-categories"],
+              "query": [{ "key": "city", "value": "Delhi" }]
+            }
+          }
+        },
+        {
+          "name": "Estimate Fare",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickup\": {\n    \"address\": \"Delhi Airport\",\n    \"latitude\": 28.5562,\n    \"longitude\": 77.1000\n  },\n  \"destination\": {\n    \"address\": \"Agra Taj Mahal\",\n    \"latitude\": 27.1751,\n    \"longitude\": 78.0421\n  },\n  \"serviceType\": \"one_way\",\n  \"vehicleCategory\": \"Sedan\",\n  \"pickupDate\": \"2024-12-25\",\n  \"pickupTime\": \"10:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/bookings/estimate-fare"
+          }
+        },
+        {
+          "name": "Get Packages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/packages?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "packages"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingType\": \"outstation\",\n  \"serviceType\": \"one_way\",\n  \"pickup\": {\n    \"address\": \"Delhi Airport\",\n    \"latitude\": 28.5562,\n    \"longitude\": 77.1000\n  },\n  \"destination\": {\n    \"address\": \"Agra Taj Mahal\",\n    \"latitude\": 27.1751,\n    \"longitude\": 78.0421\n  },\n  \"pickupDate\": \"2024-12-25\",\n  \"pickupTime\": \"10:00\",\n  \"passengers\": [\n    { \"name\": \"John Doe\", \"age\": 30, \"gender\": \"Male\" }\n  ],\n  \"luggageCount\": 2,\n  \"vehicleCategory\": \"Sedan\",\n  \"paymentMethod\": \"UPI\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/bookings/create"
+          }
+        },
+        {
+          "name": "Get My Bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/my-bookings?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "my-bookings"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"Change of plans\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/bookings/:id/cancel"
+          }
+        },
+        {
+          "name": "Rate Booking",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverRating\": 5,\n  \"vehicleRating\": 4,\n  \"serviceRating\": 5,\n  \"overallRating\": 5,\n  \"feedback\": \"Great service!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/bookings/:id/rate"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Payments",
+      "item": [
+        {
+          "name": "Get Payment Methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payments/methods"
+          }
+        },
+        {
+          "name": "Get Wallet",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payments/wallet"
+          }
+        },
+        {
+          "name": "Topup Wallet",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500,\n  \"paymentMethod\": \"upi\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/payments/wallet/topup"
+          }
+        },
+        {
+          "name": "Process Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"booking_id_here\",\n  \"paymentMethod\": \"wallet\",\n  \"amount\": 2500\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/payments/process"
+          }
+        },
+        {
+          "name": "Get Payment History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payments/history"
+          }
+        },
+        {
+          "name": "Get Invoice",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payments/invoice/:bookingId"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Trips",
+      "item": [
+        {
+          "name": "Get Active Trips",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/active"
+          }
+        },
+        {
+          "name": "Track Trip",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/:id/track"
+          }
+        },
+        {
+          "name": "Send SOS",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location\": {\n    \"latitude\": 28.6139,\n    \"longitude\": 77.2090\n  },\n  \"message\": \"Need help\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/trips/:id/sos"
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I'm at gate 2\",\n  \"messageType\": \"text\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/trips/:id/messages"
+          }
+        },
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/:id/messages"
+          }
+        },
+        {
+          "name": "Get ETA",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/:id/eta"
+          }
+        },
+        {
+          "name": "Share Location",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contacts\": [\"+919876543210\", \"+919876543211\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/trips/:id/share-location"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Support",
+      "item": [
+        {
+          "name": "Get Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/support/categories"
+          }
+        },
+        {
+          "name": "Get FAQ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/support/faq"
+          }
+        },
+        {
+          "name": "Create Ticket",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"payment_issue\",\n  \"subject\": \"Payment not reflected\",\n  \"description\": \"I paid for my trip but it shows pending\",\n  \"priority\": \"high\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/support/tickets"
+          }
+        },
+        {
+          "name": "Get Tickets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/support/tickets"
+          }
+        },
+        {
+          "name": "Get Contact Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/support/contact"
+          }
+        },
+        {
+          "name": "Submit Feedback",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"suggestion\",\n  \"subject\": \"App improvement\",\n  \"message\": \"Add dark mode\",\n  \"rating\": 4\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/support/feedback"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Promotions",
+      "item": [
+        {
+          "name": "Get All Promotions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/promotions"
+          }
+        },
+        {
+          "name": "Get Featured Promotions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/promotions/featured"
+          }
+        },
+        {
+          "name": "Validate Promo Code",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"FIRST50\",\n  \"bookingAmount\": 2500,\n  \"vehicleCategory\": \"Sedan\",\n  \"serviceType\": \"one_way\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/promotions/validate"
+          }
+        },
+        {
+          "name": "Get My Coupons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/promotions/my-coupons"
+          }
+        },
+        {
+          "name": "Get Referral Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/promotions/referral"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Favorites",
+      "item": [
+        {
+          "name": "Get Saved Locations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/favorites/locations"
+          }
+        },
+        {
+          "name": "Add Saved Location",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"home\",\n  \"label\": \"Home\",\n  \"address\": \"123 Main Street\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.2090\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/favorites/locations"
+          }
+        },
+        {
+          "name": "Get Favorite Drivers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/favorites/drivers"
+          }
+        },
+        {
+          "name": "Add Favorite Driver",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"driver_id_here\",\n  \"note\": \"Great driver\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/favorites/drivers"
+          }
+        },
+        {
+          "name": "Get Recent Routes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/favorites/recent-routes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/notifications"
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/notifications/unread-count"
+          }
+        },
+        {
+          "name": "Mark as Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/notifications/:id/read"
+          }
+        },
+        {
+          "name": "Mark All Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/notifications/read-all"
+          }
+        },
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/notifications/settings"
+          }
+        },
+        {
+          "name": "Update Settings",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"push\": {\n    \"enabled\": true,\n    \"booking\": true,\n    \"promotion\": false\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/notifications/settings"
+          }
+        },
+        {
+          "name": "Register FCM Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcmToken\": \"your_fcm_token\",\n  \"deviceType\": \"android\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/notifications/register-token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Search",
+      "item": [
+        {
+          "name": "Search Places",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/places?query=Delhi+Airport",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "places"],
+              "query": [{ "key": "query", "value": "Delhi+Airport" }]
+            }
+          }
+        },
+        {
+          "name": "Get Place Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/search/places/:placeId"
+          }
+        },
+        {
+          "name": "Geocode Address",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/geocode?address=Delhi+Airport",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "geocode"],
+              "query": [{ "key": "address", "value": "Delhi+Airport" }]
+            }
+          }
+        },
+        {
+          "name": "Reverse Geocode",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/reverse-geocode?latitude=28.6139&longitude=77.2090",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "reverse-geocode"],
+              "query": [
+                { "key": "latitude", "value": "28.6139" },
+                { "key": "longitude", "value": "77.2090" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Popular Destinations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/search/popular-destinations"
+          }
+        },
+        {
+          "name": "Search Packages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/packages?query=goa",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "packages"],
+              "query": [{ "key": "query", "value": "goa" }]
+            }
+          }
+        },
+        {
+          "name": "Get Suggestions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/search/suggestions"
+          }
+        },
+        {
+          "name": "Get Nearby Places",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/nearby?latitude=28.6139&longitude=77.2090",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "nearby"],
+              "query": [
+                { "key": "latitude", "value": "28.6139" },
+                { "key": "longitude", "value": "77.2090" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
